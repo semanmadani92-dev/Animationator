@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Zeke preview</title>
+<style>
+  @font-face {
+    font-family: "Luckiest Guy";
+    src: url("/node_modules/@fontsource/luckiest-guy/files/luckiest-guy-latin-400-normal.woff2") format("woff2");
+  }
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+  #stage { position: absolute; inset: 0; }
+  .caption {
+    position: absolute; left: 0; right: 0; top: 1270px; text-align: center;
+    font-family: "Luckiest Guy", sans-serif; line-height: 1.02; letter-spacing: 2px;
+    -webkit-text-stroke: 22px #0d0d12; paint-order: stroke fill;
+    filter: drop-shadow(0 10px 0 rgba(0,0,0,.45));
+  }
+  .caption .l1 { font-size: 100px; color: #fff; }
+  .caption .l2 { font-size: 140px; color: #ff3b3b; }
+</style>
+<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js" } }</script>
+</head>
+<body>
+<div id="stage"></div>
+<div class="caption"><div class="l1" id="l1"></div><div class="l2" id="l2"></div></div>
+<script type="module">
+import * as THREE from "three";
+import { createZeke } from "/characters/zeke.js";
+
+await document.fonts.load("150px 'Luckiest Guy'");
+const q = new URLSearchParams(location.search);
+const P = {
+  expr: q.get("expr") || "sad", luck: q.get("luck") || "0%", luckColor: q.get("luckColor") || "#ff3b3b",
+  l1: q.get("l1") || "HE WAS BORN WITH", l2: q.get("l2") || "ZERO", l2Color: q.get("l2Color") || "#ff3b3b",
+};
+document.getElementById("l1").textContent = P.l1;
+const l2 = document.getElementById("l2"); l2.textContent = P.l2; l2.style.color = P.l2Color;
+
+const W = 1080, H = 1920;
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.getElementById("stage").appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+// sky gradient
+const sky = document.createElement("canvas"); sky.width = 4; sky.height = 512;
+const sg = sky.getContext("2d"); const grad = sg.createLinearGradient(0, 0, 0, 512);
+grad.addColorStop(0, "#3d8bff"); grad.addColorStop(0.6, "#9fd2ff"); grad.addColorStop(1, "#ffe2b8");
+sg.fillStyle = grad; sg.fillRect(0, 0, 4, 512);
+const skyTex = new THREE.CanvasTexture(sky); skyTex.colorSpace = THREE.SRGBColorSpace;
+scene.background = skyTex;
+scene.fog = new THREE.Fog("#bfe0ff", 30, 70);
+
+scene.add(new THREE.HemisphereLight("#ffffff", "#7a8a99", 1.4));
+const sun = new THREE.DirectionalLight("#fff3dd", 2.6);
+sun.position.set(6, 12, 8); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 40 });
+scene.add(sun);
+
+const mat = (c) => new THREE.MeshToonMaterial({ color: c });
+// road + sidewalks
+const road = new THREE.Mesh(new THREE.PlaneGeometry(200, 14), mat("#5b6270"));
+road.rotation.x = -Math.PI / 2; road.position.z = -3; road.receiveShadow = true; scene.add(road);
+for (const z of [5.5, -11.5]) {
+  const walk = new THREE.Mesh(new THREE.BoxGeometry(200, 0.25, 4), mat("#c9ccd4"));
+  walk.position.set(0, 0.0, z); walk.receiveShadow = true; scene.add(walk);
+}
+for (let x = -40; x < 40; x += 6) {
+  const dash = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.25), mat("#f4f1e6"));
+  dash.rotation.x = -Math.PI / 2; dash.position.set(x, 0.01, -3); scene.add(dash);
+}
+// buildings with window textures
+function windows(base) {
+  const c = document.createElement("canvas"); c.width = 128; c.height = 256;
+  const g = c.getContext("2d"); g.fillStyle = base; g.fillRect(0, 0, 128, 256);
+  g.fillStyle = "#cfeaff";
+  for (let y = 16; y < 240; y += 40) for (let x = 14; x < 120; x += 38) g.fillRect(x, y, 24, 26);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const palette = ["#ff8f70", "#7ec8e3", "#f6d365", "#a18cd1", "#84d98c", "#f78fb3"];
+for (let i = 0; i < 12; i++) {
+  const h = 6 + ((i * 7) % 9), w = 5;
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, 5),
+    new THREE.MeshToonMaterial({ map: windows(palette[i % palette.length]) }));
+  b.position.set(-30 + i * 5.4, h / 2, -17); b.castShadow = b.receiveShadow = true; scene.add(b);
+}
+
+// Zeke
+const zeke = createZeke({ expression: P.expr, luck: P.luck, luckColor: P.luckColor });
+zeke.group.position.set(0, 0.12, 2.5);
+zeke.group.rotation.y = -0.25;
+zeke.armL.rotation.z = 0.15; zeke.armR.rotation.z = -0.15;
+zeke.head.rotation.x = 0.12;
+scene.add(zeke.group);
+
+const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 200);
+camera.position.set(1.8, 3.4, 15.5);
+camera.lookAt(0, 3.1, 2.5);
+
+renderer.render(scene, camera);
+window.__ready = true;
+</script>
+</body>
+</html>
