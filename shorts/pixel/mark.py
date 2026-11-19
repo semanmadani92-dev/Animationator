@@ -2,7 +2,9 @@
 
 Small teen boy, red/black hoodie with the hood up, red hair poking out,
 big round eyes, freckles, a sword resting on his shoulder. Cool and calm;
-his signature look is annoyed.
+his signature look is annoyed. He is the only one in his world with common
+sense: when everyone else wants an epic battle, he finds the simple fix
+(an enemy on a bridge? He cuts the bridge).
 
 Shapes are filled as named regions, then shaded (light from the top left),
 outlined, and finished with per-expression face details. Everything is
