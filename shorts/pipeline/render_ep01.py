@@ -88,13 +88,20 @@ def mix_audio(T, audio, audio_dir, out_wav):
 
 
 # ---------------------------------------------------------------- captions
+FILLER = {"the", "a", "an", "of", "to", "in", "this", "that", "will", "shall", "could", "just", "is", "was",
+          "for", "and", "but", "it", "i", "you", "at", "be", "so", "lets", "every", "gets", "take", "do", "least"}
+
+
 def caption_chunks(line, words):
+    """Split a line into 1-4 word chunks; the last word of each chunk is shown big, so never end on filler."""
     keys = {re.sub(r"[^a-z]", "", k.lower()) for k in line.get("keywords", [])}
     chunks, cur = [], []
     for w in words:
         cur.append(w)
         bare = re.sub(r"[^a-z]", "", w[0].lower())
-        if len(cur) == 3 or bare in keys or w[0][-1] in ".!?,":
+        punct = w[0][-1] in ".!?,"
+        filler = bare in FILLER
+        if bare in keys or (punct and not filler) or (len(cur) >= 3 and not filler) or len(cur) >= 5:
             chunks.append(cur)
             cur = []
     if cur:

@@ -2,26 +2,50 @@
   "_about": "Recurring cast for the pixel-art shorts. Voices are designed with Qwen3-TTS VoiceDesign from these descriptions; once a take is approved it becomes the reference clip for voice cloning, so each character keeps the same voice in every video. Each character's lines are cloned from one approved reference take, so the voice never drifts between lines.",
   "narrator": {
     "role": "Tells the story in the hyped Shorts style.",
-    "voice": "A seventeen-year-old American boy with a youthful but deepened voice, super hyped and animated, telling his friends an unbelievable story at a quick pace with excited emphasis on key words."
+    "voice": "A seventeen-year-old American boy with a youthful but deepened voice, super hyped and animated, telling his friends an unbelievable story at a quick pace with excited emphasis on key words.",
+    "reference": {
+      "wav": "voices/narrator.wav",
+      "text": "In this world, everyone can see their luck. Most people get fifty percent. But Zeke? He was born with zero. Then one morning... everything changed."
+    }
   },
   "mark": {
     "role": "Main character. The only one with common sense; solves dramatic problems the simple way (enemy on a bridge? cut the bridge). Calm, deadpan, often annoyed.",
-    "voice": "A fifteen-year-old boy with a dry, deadpan, unimpressed voice. Calm, flat and a little tired, like the only sensible person in the room. Speaks plainly with a subtle sarcastic edge."
+    "voice": "A fifteen-year-old boy with a dry, deadpan, unimpressed voice. Calm, flat and a little tired, like the only sensible person in the room. Speaks plainly with a subtle sarcastic edge.",
+    "reference": {
+      "wav": "voices/mark.wav",
+      "text": "Or... I could just do this."
+    }
   },
   "reginald": {
     "role": "Sir Reginald, an overdramatic knight who wants every problem to become an epic battle.",
-    "voice": "A middle-aged man with a deep, booming baritone voice, low-pitched and chesty. Extremely dramatic and overconfident, like a heroic knight in an old adventure film, projecting every word with gusto."
+    "voice": "A middle-aged man with a deep, booming baritone voice, low-pitched and chesty. Extremely dramatic and overconfident, like a heroic knight in an old adventure film, projecting every word with gusto.",
+    "reference": {
+      "wav": "voices/reginald.wav",
+      "text": "I am Sir Reginald, the bravest knight in all the land, and I fear nothing!"
+    }
   },
   "vexmore": {
     "role": "Lord Vexmore, the villain who loves a long monologue.",
-    "voice": "A deep, rich, sinister male voice with a theatrical villain delivery. Slow and menacing, savouring every word, then bursting into an evil laugh."
+    "voice": "A deep, rich, sinister male voice with a theatrical villain delivery. Slow and menacing, savouring every word, then bursting into an evil laugh.",
+    "reference": {
+      "wav": "voices/vexmore.wav",
+      "text": "Mwahahaha! You shall never cross this bridge, hero! Prepare for the battle of the century!"
+    }
   },
   "bumblewick": {
     "role": "Bumblewick, a confused old wizard and Mark's 'mentor'.",
-    "voice": "A very old man with a wobbly, raspy, absent-minded voice. Slow and rambling, kind but confused, pausing as if he forgot what he was saying."
+    "voice": "A very old man with a wobbly, raspy, absent-minded voice. Slow and rambling, kind but confused, pausing as if he forgot what he was saying.",
+    "reference": {
+      "wav": "voices/bumblewick.wav",
+      "text": "Hmm... was that... allowed?"
+    }
   },
   "grub": {
     "role": "Grub, Lord Vexmore's panicky goblin minion.",
-    "voice": "A small goblin creature with a high-pitched, squeaky, nasal voice. Frantic and panicky, talking fast."
+    "voice": "A small goblin creature with a high-pitched, squeaky, nasal voice. Frantic and panicky, talking fast.",
+    "reference": {
+      "wav": "voices/grub.wav",
+      "text": "Boss?! BOSS! Oh no, oh no, oh no!"
+    }
   }
 }
