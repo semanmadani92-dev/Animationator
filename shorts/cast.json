@@ -1,5 +1,5 @@
 {
-  "_about": "Recurring cast for the pixel-art shorts. Voices are designed with Qwen3-TTS VoiceDesign from these descriptions; once a take is approved it becomes the reference clip for voice cloning, so each character keeps the same voice in every video.",
+  "_about": "Recurring cast for the pixel-art shorts. Voices are designed with Qwen3-TTS VoiceDesign from these descriptions; once a take is approved it becomes the reference clip for voice cloning, so each character keeps the same voice in every video. Each character's lines are cloned from one approved reference take, so the voice never drifts between lines.",
   "narrator": {
     "role": "Tells the story in the hyped Shorts style.",
     "voice": "A seventeen-year-old American boy with a youthful but deepened voice, super hyped and animated, telling his friends an unbelievable story at a quick pace with excited emphasis on key words."
@@ -10,7 +10,7 @@
   },
   "reginald": {
     "role": "Sir Reginald, an overdramatic knight who wants every problem to become an epic battle.",
-    "voice": "A middle-aged man with a booming, theatrical, heroic voice. Extremely dramatic and overconfident, like a knight in an old adventure film, projecting every word with gusto."
+    "voice": "A middle-aged man with a deep, booming baritone voice, low-pitched and chesty. Extremely dramatic and overconfident, like a heroic knight in an old adventure film, projecting every word with gusto."
   },
   "vexmore": {
     "role": "Lord Vexmore, the villain who loves a long monologue.",

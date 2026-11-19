@@ -12,7 +12,7 @@ deterministic, so Mark looks identical in every video.
 """
 from PIL import Image
 
-W, H = 32, 40
+W, H = 36, 40
 
 PALETTE = {
     # region: (base, shade, highlight)
@@ -66,18 +66,21 @@ def _line(g, x0, y0, x1, y1, region, width=1):
                 g[y][x + k] = region
 
 
-def _shapes():
+def _shapes(pose="stand"):
     g = _blank()
-    # sword resting on his shoulder (drawn first, body overlaps it)
-    _line(g, 24, 26, 29, 11, "steel", width=2)
-    _rect(g, 20, 26, 27, 27, "gold")
-    _rect(g, 23, 28, 24, 30, "grip")
-    _rect(g, 23, 31, 24, 31, "gold")
-    # legs and boots
-    _rect(g, 11, 31, 14, 35, "black")
-    _rect(g, 17, 31, 20, 35, "black")
-    _rect(g, 10, 36, 14, 38, "boot")
-    _rect(g, 17, 36, 21, 38, "boot")
+    if pose != "swing":
+        # sword resting on his shoulder (drawn first, body overlaps it)
+        _line(g, 24, 26, 29, 11, "steel", width=2)
+        _rect(g, 20, 26, 27, 27, "gold")
+        _rect(g, 23, 28, 24, 30, "grip")
+        _rect(g, 23, 31, 24, 31, "gold")
+    # legs and boots; walking lifts one foot
+    lift_l = 1 if pose == "walk1" else 0
+    lift_r = 1 if pose == "walk2" else 0
+    _rect(g, 11, 31, 14, 35 - lift_l, "black")
+    _rect(g, 17, 31, 20, 35 - lift_r, "black")
+    _rect(g, 10 - lift_l, 36 - lift_l, 14 - lift_l, 38 - lift_l, "boot")
+    _rect(g, 17 + lift_r, 36 - lift_r, 21 + lift_r, 38 - lift_r, "boot")
     # hoodie body with black hem
     _rect(g, 10, 21, 21, 30, "red")
     _rect(g, 10, 29, 21, 30, "black")
@@ -86,9 +89,17 @@ def _shapes():
     _rect(g, 7, 22, 9, 28, "red")
     _rect(g, 7, 29, 9, 29, "black")
     _rect(g, 7, 30, 9, 31, "skin")
-    _rect(g, 22, 22, 24, 26, "red")
-    _rect(g, 22, 27, 24, 27, "black")
-    _rect(g, 22, 28, 25, 30, "skin")
+    if pose == "swing":
+        # arm thrust out to the side, sword level after the cut
+        _rect(g, 22, 22, 26, 24, "red")
+        _rect(g, 27, 22, 27, 24, "black")
+        _rect(g, 28, 22, 29, 24, "skin")
+        _rect(g, 30, 20, 30, 26, "gold")
+        _rect(g, 31, 22, 35, 23, "steel")
+    else:
+        _rect(g, 22, 22, 24, 26, "red")
+        _rect(g, 22, 27, 24, 27, "black")
+        _rect(g, 22, 28, 25, 30, "skin")
     # hood, dark inner hood, face
     _ellipse(g, 15.5, 12, 9.5, 9, "red")
     _rect(g, 14, 2, 17, 3, "red")
@@ -146,7 +157,7 @@ def _rgba(hex_color):
     return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
 
 
-def _face(img, expression):
+def _face(img, expression, talk=False):
     px = img.load()
 
     def put(x, y, c):
@@ -189,6 +200,8 @@ def _face(img, expression):
         "surprised": [(15, 18), (16, 18), (15, 19), (16, 19)],
         "smirk": [(14, 18), (15, 18), (16, 18), (17, 17)],
     }[expression]
+    if talk:
+        mouth = [(15, 18), (16, 18), (15, 19), (16, 19), (14, 18), (17, 18)]
     for x, y in mouth:
         put(x, y, MOUTH)
 
@@ -201,10 +214,15 @@ def _face(img, expression):
     return img
 
 
-def build_mark(expression="calm"):
+POSES = ("stand", "walk1", "walk2", "swing")
+
+
+def build_mark(expression="calm", talk=False, pose="stand"):
     if expression not in EXPRESSIONS:
         raise ValueError(f"expression must be one of {EXPRESSIONS}")
-    return _face(_shade(_shapes()), expression)
+    if pose not in POSES:
+        raise ValueError(f"pose must be one of {POSES}")
+    return _face(_shade(_shapes(pose)), expression, talk)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,89 @@
+{
+ "title": "The Bridge",
+ "fps": 24,
+ "lines": [
+  {
+   "id": "01_narrator",
+   "speaker": "narrator",
+   "text": "In this world, every hero gets an epic final battle. But Mark... had other plans.",
+   "keywords": [
+    "world",
+    "EPIC",
+    "battle",
+    "Mark",
+    "plans"
+   ]
+  },
+  {
+   "id": "02_vexmore",
+   "speaker": "vexmore",
+   "text": "Mwahahaha! You shall never cross this bridge, hero! Prepare for the battle of the century!",
+   "keywords": [
+    "Mwahahaha",
+    "never",
+    "bridge",
+    "battle",
+    "century"
+   ]
+  },
+  {
+   "id": "03_reginald",
+   "speaker": "reginald",
+   "text": "Stand back, Mark! This duel will be legendary! It shall take at least three hours!",
+   "keywords": [
+    "back",
+    "legendary",
+    "three",
+    "hours"
+   ]
+  },
+  {
+   "id": "04_mark",
+   "speaker": "mark",
+   "text": "Or... I could just do this.",
+   "keywords": [
+    "Or",
+    "this"
+   ]
+  },
+  {
+   "id": "05_sfx_snap",
+   "sfx": "snap"
+  },
+  {
+   "id": "06_vexmore",
+   "speaker": "vexmore",
+   "text": "Wait... wait, wait, WAIT! No... NOOO!",
+   "keywords": [
+    "WAIT",
+    "NOOO"
+   ]
+  },
+  {
+   "id": "07_grub",
+   "speaker": "grub",
+   "text": "Boss?! BOSS! Oh no, oh no, oh no!",
+   "keywords": [
+    "BOSS",
+    "no"
+   ]
+  },
+  {
+   "id": "08_bumblewick",
+   "speaker": "bumblewick",
+   "text": "Hmm... was that... allowed?",
+   "keywords": [
+    "allowed"
+   ]
+  },
+  {
+   "id": "09_mark",
+   "speaker": "mark",
+   "text": "Bridge is closed. Let's go home.",
+   "keywords": [
+    "closed",
+    "home"
+   ]
+  }
+ ]
+}
