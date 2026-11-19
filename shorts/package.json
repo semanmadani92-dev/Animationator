@@ -6,6 +6,7 @@
   "type": "module",
   "dependencies": {
     "@fontsource/luckiest-guy": "^5.1.0",
+    "@fontsource/nunito": "^5.1.0",
     "three": "^0.170.0"
   }
 }
