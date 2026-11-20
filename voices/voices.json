@@ -29,5 +29,11 @@
     "voice": "A small goblin creature with a high-pitched, squeaky, nasal voice. Frantic and panicky, talking fast.",
     "wav": "grub.wav",
     "text": "Boss?! BOSS! Oh no, oh no, oh no!"
+  },
+  "lastlight_whisper": {
+    "voice": "A man speaking in a hushed, breathy near-whisper, very close to the microphone, as if hiding from something in the dark. Tense, slow, quiet and intimate.",
+    "wav": "lastlight_whisper.wav",
+    "text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+    "use": "Last Light channel narrator"
   }
 }

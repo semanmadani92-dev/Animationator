@@ -1,6 +1,6 @@
 # Voices
 
-Six approved voices, made with Qwen3-TTS (free, Apache 2.0, runs on CPU). `voices.json` lists each one with the
+Seven approved voices, made with Qwen3-TTS (free, Apache 2.0, runs on CPU). `voices.json` lists each one with the
 description it was designed from and the exact words in its reference take.
 
 | Voice | Sound |
@@ -11,6 +11,7 @@ description it was designed from and the exact words in its reference take.
 | vexmore | slow, sinister villain |
 | bumblewick | wobbly, confused old man |
 | grub | squeaky, panicky goblin |
+| lastlight_whisper | hushed, breathy near-whisper (Last Light narrator) |
 
 ## Speak new lines in one of these voices
 
