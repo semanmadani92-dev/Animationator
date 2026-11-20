@@ -1,0 +1,125 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Marker; src: url(fonts/PermanentMarker-Regular.ttf); }
+@font-face { font-family: Hand; src: url(fonts/PatrickHand-Regular.ttf); }
+html, body { margin: 0; background: #000; }
+svg { display: block; }
+</style></head><body>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// "What if you got trapped in SCP-3008?" sample frame: black-and-white doodle + game HUD.
+const W = 1080, H = 1920, INK = '#161616', PAPER = '#f6f3ea', ORANGE = '#ff7a1a', RED = '#e63946';
+const VX = 540, VY = 860;  // vanishing point down the endless aisle
+let g = `<defs>
+  <filter id="wob"><feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter>
+  <filter id="wob2"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="2"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter>
+  <pattern id="hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="14" stroke="${INK}" stroke-width="2.4" opacity=".55"/></pattern>
+  <radialGradient id="dark" cx=".5" cy=".45" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
+</defs>`;
+g += `<rect width="${W}" height="${H}" fill="${PAPER}"/>`;
+
+// ---- the endless store, one-point perspective
+const P = (x, y, k) => [VX + (x - VX) * k, VY + (y - VY) * k];  // scale a point towards the vanishing point
+let s = '';
+// floor tiles and ceiling beams converging
+for (let i = -6; i <= 6; i++) { const [x, y] = [VX + i * 260, 1720]; s += `<line x1="${x}" y1="${y}" x2="${VX}" y2="${VY}" stroke="${INK}" stroke-width="3" opacity=".35"/>`; }
+for (let k = 1; k > 0.02; k *= 0.72) {
+  const [, fy] = P(0, 1720, k), [, cy] = P(0, 260, k);
+  s += `<line x1="0" y1="${fy}" x2="${W}" y2="${fy}" stroke="${INK}" stroke-width="${3 * k + 1}" opacity=".35"/>`;
+  s += `<line x1="0" y1="${cy}" x2="${W}" y2="${cy}" stroke="${INK}" stroke-width="${3 * k + 1}" opacity=".3"/>`;
+}
+// shelving units on both sides, getting smaller into the distance
+for (const side of [-1, 1]) {
+  let k = 1;
+  for (let n = 0; n < 9; n++) {
+    const k2 = k * 0.74;
+    const xo = VX + side * 520, xi = VX + side * 300;
+    const q = (x, y, kk) => P(x, y, kk).join(',');
+    // front face of the unit (a tall shelf seen at an angle)
+    s += `<polygon points="${q(xo, 1600, k)} ${q(xo, 470, k)} ${q(xo, 470, k2)} ${q(xo, 1600, k2)}" fill="${PAPER}" stroke="${INK}" stroke-width="${6 * k + 1.5}" stroke-linejoin="round"/>`;
+    for (let b = 0; b < 4; b++) {  // shelves with boxes
+      const y = 600 + b * 260;
+      s += `<line x1="${P(xo, y, k)[0]}" y1="${P(xo, y, k)[1]}" x2="${P(xo, y, k2)[0]}" y2="${P(xo, y, k2)[1]}" stroke="${INK}" stroke-width="${5 * k + 1}"/>`;
+      if (k > 0.2) for (let j = 0; j < 3; j++) {
+        const kk = k - (k - k2) * (0.15 + j * 0.3), [bx, by] = P(xo, y, kk), bw = 60 * kk, bh = (90 + ((n + b + j) % 3) * 30) * kk;
+        s += `<rect x="${bx - (side < 0 ? 0 : bw)}" y="${by - bh}" width="${bw}" height="${bh}" fill="${(n + b + j) % 4 ? PAPER : 'url(#hatch)'}" stroke="${INK}" stroke-width="${3 * kk + 1}"/>`;
+      }
+    }
+    // aisle number sign hanging from the ceiling
+    if (n < 4) {
+      const [sx, sy] = P(xi + side * 40, 420, k);
+      s += `<line x1="${sx}" y1="${P(0, 300, k)[1]}" x2="${sx}" y2="${sy - 30 * k}" stroke="${INK}" stroke-width="${3 * k + 1}"/>`;
+      s += `<rect x="${sx - 70 * k}" y="${sy - 30 * k}" width="${140 * k}" height="${60 * k}" fill="${PAPER}" stroke="${INK}" stroke-width="${4 * k + 1}"/>`;
+      s += `<text x="${sx}" y="${sy + 14 * k}" text-anchor="middle" font-family="Hand" font-size="${40 * k}" fill="${INK}">${side < 0 ? 4812 + n * 2 : 4813 + n * 2}</text>`;
+    }
+    k = k2;
+  }
+}
+// ceiling lamps (some flickering out)
+for (let k = 0.9, i = 0; k > 0.05; k *= 0.74, i++) {
+  const [lx, ly] = P(VX, 330, k);
+  const on = i % 3 !== 1;
+  s += `<line x1="${lx}" y1="${P(0, 260, k)[1]}" x2="${lx}" y2="${ly}" stroke="${INK}" stroke-width="${2 * k + 1}"/>`;
+  s += `<path d="M${lx - 50 * k},${ly + 30 * k} L${lx - 20 * k},${ly} L${lx + 20 * k},${ly} L${lx + 50 * k},${ly + 30 * k} Z" fill="${on ? PAPER : INK}" stroke="${INK}" stroke-width="${3 * k + 1}"/>`;
+  if (on) s += `<path d="M${lx - 34 * k},${ly + 44 * k} l-10,${18 * k} M${lx},${ly + 46 * k} l0,${20 * k} M${lx + 34 * k},${ly + 44 * k} l10,${18 * k}" stroke="${INK}" stroke-width="${2 * k + 1}"/>`;
+}
+// a faceless "staff" member far down the aisle, watching
+const sx0 = VX + 40, sy0 = 1010;
+s += `<g transform="translate(${sx0},${sy0}) scale(.62)">
+  <ellipse cx="0" cy="-205" rx="26" ry="32" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>
+  <path d="M-30,-170 L30,-170 L36,-60 L-36,-60 Z" fill="#ffd23f" stroke="${INK}" stroke-width="6"/>
+  <path d="M-30,-160 L-48,-60 M30,-160 L48,-60 M-18,-60 L-22,30 M18,-60 L22,30" stroke="${INK}" stroke-width="7" fill="none" stroke-linecap="round"/>
+</g>`;
+s += `<text x="${sx0 + 50}" y="${sy0 - 150}" font-family="Hand" font-size="34" fill="${RED}">?!</text>`;
+g += `<g filter="url(#wob)">${s}</g>`;
+
+// ---- the protagonist (placeholder): doodle D-class in an orange jumpsuit, holding a lamp he grabbed as a weapon
+let c = '';
+c += `<path d="M-95,40 Q-110,-150 -70,-200 L70,-200 Q110,-150 95,40 Z" fill="${ORANGE}" stroke="${INK}" stroke-width="8" stroke-linejoin="round"/>`;
+c += `<path d="M-45,-200 L0,-150 L45,-200" fill="none" stroke="${INK}" stroke-width="6"/>`;
+c += `<rect x="-62" y="-120" width="124" height="44" rx="6" fill="${PAPER}" stroke="${INK}" stroke-width="5"/><text x="0" y="-86" text-anchor="middle" font-family="Hand" font-size="34" fill="${INK}">D-0427</text>`;
+c += `<path d="M-55,40 L-60,190 M55,40 L60,190" stroke="${INK}" stroke-width="44" stroke-linecap="round"/><path d="M-55,40 L-60,190 M55,40 L60,190" stroke="${ORANGE}" stroke-width="30" stroke-linecap="round"/>`;
+c += `<ellipse cx="-70" cy="200" rx="44" ry="22" fill="${INK}"/><ellipse cx="72" cy="200" rx="44" ry="22" fill="${INK}"/>`;
+// arms: one clutching a desk lamp like a weapon, one hugging himself
+c += `<path d="M85,-170 Q170,-120 180,-30" stroke="${INK}" stroke-width="40" fill="none" stroke-linecap="round"/><path d="M85,-170 Q170,-120 180,-30" stroke="${ORANGE}" stroke-width="27" fill="none" stroke-linecap="round"/>`;
+c += `<circle cx="180" cy="-25" r="26" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>`;
+c += `<path d="M180,-25 L220,-210 L170,-300" stroke="${INK}" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M130,-300 L210,-300 L190,-350 L150,-350 Z" fill="${PAPER}" stroke="${INK}" stroke-width="7"/>`;
+c += `<path d="M-85,-170 Q-150,-110 -40,-60" stroke="${INK}" stroke-width="40" fill="none" stroke-linecap="round"/><path d="M-85,-170 Q-150,-110 -40,-60" stroke="${ORANGE}" stroke-width="27" fill="none" stroke-linecap="round"/>`;
+// head: big round doodle head, nervous
+c += `<circle cx="0" cy="-330" r="135" fill="${PAPER}" stroke="${INK}" stroke-width="8"/>`;
+c += `<path d="M-120,-380 Q-60,-500 40,-470 Q120,-450 125,-370 Q90,-420 40,-410 Q-20,-440 -120,-380 Z" fill="${INK}"/>`;
+c += `<circle cx="-48" cy="-330" r="30" fill="#fff" stroke="${INK}" stroke-width="6"/><circle cx="48" cy="-330" r="30" fill="#fff" stroke="${INK}" stroke-width="6"/>`;
+c += `<circle cx="-38" cy="-322" r="9" fill="${INK}"/><circle cx="58" cy="-322" r="9" fill="${INK}"/>`;  // glancing at the staff behind
+c += `<path d="M-84,-368 Q-52,-372 -22,-394 M22,-394 Q52,-372 84,-368" stroke="${INK}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+c += `<path d="M-38,-250 q12,-14 24,0 q12,14 24,0 q12,-14 24,0" stroke="${INK}" stroke-width="7" fill="none" stroke-linecap="round"/>`;  // wobbly worried mouth
+c += `<path d="M118,-400 q14,26 0,40 q-14,-14 0,-40 Z M-130,-360 q10,20 0,30 q-10,-10 0,-30 Z" fill="#7fc8ff" stroke="${INK}" stroke-width="4"/>`;  // sweat
+g += `<g filter="url(#wob2)" transform="translate(470,1500) scale(.92)">${c}</g>`;
+g += `<rect width="${W}" height="${H}" fill="url(#dark)"/>`;
+
+// ---- HUD: game-style meters, hand-drawn
+let hud = '';
+const box = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>`;
+const bar = (x, y, w, label, frac, col, val) => `<text x="${x}" y="${y}" font-family="Hand" font-size="38" fill="${INK}">${label}</text>
+  <text x="${x + w}" y="${y}" text-anchor="end" font-family="Hand" font-size="38" fill="${col}">${val}</text>
+  <rect x="${x}" y="${y + 14}" width="${w}" height="30" rx="8" fill="${PAPER}" stroke="${INK}" stroke-width="5"/>
+  <rect x="${x + 5}" y="${y + 19}" width="${(w - 10) * frac}" height="20" rx="5" fill="${col}"/>
+  <rect x="${x + 5}" y="${y + 19}" width="${(w - 10) * frac}" height="20" rx="5" fill="url(#hatch)" opacity=".5"/>`;
+hud += box(36, 360, 470, 330);
+hud += bar(66, 420, 410, 'SURVIVAL', 0.34, ORANGE, '34%');
+hud += bar(66, 520, 410, 'HUNGER', 0.62, '#2a9d8f', '62%');
+hud += bar(66, 620, 410, 'STAFF NEARBY', 0.88, RED, 'HIGH');
+hud += box(574, 360, 470, 210);
+hud += `<text x="809" y="420" text-anchor="middle" font-family="Hand" font-size="38" fill="${INK}">DAY 1</text>`;
+hud += `<text x="809" y="505" text-anchor="middle" font-family="Marker" font-size="84" fill="${RED}">21:58</text>`;
+hud += `<text x="809" y="548" text-anchor="middle" font-family="Hand" font-size="32" fill="${INK}">lights out at 22:00</text>`;
+hud += `<g transform="translate(809,640) rotate(-6)"><rect x="-150" y="-44" width="300" height="88" rx="10" fill="#ffd23f" stroke="${INK}" stroke-width="6"/>
+  <text y="16" text-anchor="middle" font-family="Marker" font-size="50" fill="${INK}">EUCLID</text></g>`;
+g += `<g filter="url(#wob2)">${hud}</g>`;
+
+// ---- title and caption
+const tx = (t, y, size, fill, font = 'Marker') => `<text x="540" y="${y}" text-anchor="middle" font-family="${font}" font-size="${size}" fill="${fill}" stroke="${PAPER}" stroke-width="${size * 0.18}" paint-order="stroke" stroke-linejoin="round">${t}</text>`;
+g += `<g filter="url(#wob2)">${tx('WHAT IF YOU GOT', 120, 86, INK)}${tx('TRAPPED IN', 215, 86, INK)}${tx('SCP-3008?', 318, 104, RED)}</g>`;
+g += `<g filter="url(#wob2)">${tx('the lights go out', 1770, 66, INK, 'Hand')}${tx('IN 2 MINUTES...', 1860, 92, RED)}</g>`;
+document.getElementById('c').innerHTML = g;
+</script></body></html>
