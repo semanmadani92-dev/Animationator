@@ -37,6 +37,17 @@ class Sprite:
             for k in range(width):
                 self._set(x + k, y, region)
 
+    def seg(self, x0, y0, x1, y1, region, r=1.2):
+        """Thick line (a limb): every pixel within r of the segment."""
+        dx, dy = x1 - x0, y1 - y0
+        ll = dx * dx + dy * dy or 1e-9
+        for y in range(int(min(y0, y1) - r - 1), int(max(y0, y1) + r + 2)):
+            for x in range(int(min(x0, x1) - r - 1), int(max(x0, x1) + r + 2)):
+                px, py = x + 0.5, y + 0.5
+                t = max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / ll))
+                if (px - x0 - t * dx) ** 2 + (py - y0 - t * dy) ** 2 <= r * r:
+                    self._set(x, y, region)
+
     def poly(self, pts, region):
         """Fill a polygon (even-odd rule, sampled at pixel centres)."""
         for y in range(self.h):
