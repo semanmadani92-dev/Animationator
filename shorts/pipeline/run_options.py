@@ -37,7 +37,7 @@ def cycle(n, thigh_amp, bend_base, bend_extra, arm_amp, **extra):
     return poses
 
 
-def foot_speed(poses, fps=12):
+def foot_speed(poses, fps=12):  # fps: poses per second
     """Ground speed (px/s) that keeps the planted foot from sliding."""
     th, sh = poses[0].get("legs", (6, 6))
     xs = [th * math.sin(math.radians(p["nl"][0])) + sh * math.sin(math.radians(p["nl"][1])) for p in poses]

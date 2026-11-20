@@ -77,52 +77,68 @@ MARK_PAL = {
 
 
 def mark_side(pose=IDLE, expression="calm"):
-    """Optional pose keys: legs=(thigh, shin) lengths, leg_r (thickness), lean (px the upper body leans forward)."""
+    """Optional pose keys: legs=(thigh, shin) lengths, leg_r (thickness), lean (px forward shift of the
+    upper body), tilt (degrees the whole upper body rotates forward about the hip, e.g. 45 for a ninja run)."""
     s = Sprite(SW, SH)
     thigh, shin = pose.get("legs", (6, 6))
     leg_r = pose.get("leg_r", 1.6)
     lean = pose.get("lean", 0)
+    tilt = math.radians(pose.get("tilt", 0))
     up = pose.get("up", 0) + (12 - thigh - shin)  # shorter legs: lower the body so feet stay on the ground
-    hip, sh = (HIP[0], HIP[1] + up), (SHOULDER[0] + 1 + lean, SHOULDER[1] + up)
+    hip = (HIP[0], HIP[1] + up)
+    ud = (math.sin(tilt), -math.cos(tilt))  # body "up" direction
+    fd = (math.cos(tilt), math.sin(tilt))  # body "forward" direction
+
+    def P(fwd, upward):  # point in the body frame, relative to the hip
+        return (hip[0] + lean + fwd * fd[0] + upward * ud[0], hip[1] + fwd * fd[1] + upward * ud[1])
+
+    sh = P(1, 11)
+    hc = P(1, 20)
     # far limbs (darker, behind the body)
     fa = _limb(s, sh, pose["fa"][0], 5, pose["fa"][1], 5, "redfar", 1.3)
     s.rect(round(fa[0]) - 1, round(fa[1]) - 1, round(fa[0]) + 1, round(fa[1]) + 1, "skinfar")
     fl = _limb(s, hip, pose["fl"][0], thigh, pose["fl"][1], shin, "blackfar", leg_r - 0.1)
     _foot(s, fl, "bootfar")
-    # torso (leaning: the top shifts forward)
-    s.poly([(18 + lean, 21 + up), (27 + lean, 21 + up), (27, 33 + up), (18, 33 + up)], "red")
-    s.rect(18, 31 + up, 27, 33 + up, "black")
+    # torso: a box from hip to shoulders, rotated with the tilt; black hem at the hip end
+    s.poly([P(-4.5, 0), P(4.5, 0), P(4.5, 12), P(-4.5, 12)], "red")
+    s.poly([P(-4.5, -0.5), P(4.5, -0.5), P(4.5, 2.5), P(-4.5, 2.5)], "black")
     # near leg
     nl = _limb(s, hip, pose["nl"][0], thigh, pose["nl"][1], shin, "black", leg_r)
     _foot(s, nl, "boot")
-    # head: hood with face opening at the front
-    hc = (23 + lean, 13 + up)
+    # head: hood, hood tip at the back, face opening at the front, spiky fringe
     s.ellipse(hc[0], hc[1], 7.5, 7.5, "red")
-    s.rect(16 + lean, 6 + up, 18 + lean, 8 + up, "red")  # hood tip at the back
-    s.ellipse(hc[0] + 3.5, hc[1] + 1.5, 4.2, 5.2, "skin")
-    for x, bottom in zip(range(24 + lean, 31 + lean), (10, 11, 10, 9, 11, 10, 9)):
-        for y in range(8 + up, bottom + 1 + up):
-            if s.get(x, y) in ("skin", "red"):
+    tip = (hc[0] - 6 * fd[0] + 6 * ud[0], hc[1] - 6 * fd[1] + 6 * ud[1])
+    s.rect(round(tip[0]) - 1, round(tip[1]) - 1, round(tip[0]) + 1, round(tip[1]) + 1, "red")
+    face = (hc[0] + 3.5 * fd[0] - 1.5 * ud[0], hc[1] + 3.5 * fd[1] - 1.5 * ud[1])
+    s.ellipse(face[0], face[1], 4.2, 5.2, "skin")
+    for y in range(SH):
+        for x in range(SW):
+            vx, vy = x + 0.5 - hc[0], y + 0.5 - hc[1]
+            f, u = vx * fd[0] + vy * fd[1], vx * ud[0] + vy * ud[1]
+            if 0.5 <= f <= 7.5 and u >= 2.0 + (int(f) % 3 == 1) and s.get(x, y) in ("skin", "red"):
                 s.g[y][x] = "hair"
     # sword in the near hand, then the near arm over it
     hand = _pt(*_pt(*sh, pose["na"][0], 5), pose["na"][1], 5)
     sword_ang = pose.get("sword", 25)
-    tip = _pt(*hand, sword_ang, 15)
-    s.seg(*hand, *tip, "steel", 0.9)
+    stip = _pt(*hand, sword_ang, 15)
+    s.seg(*hand, *stip, "steel", 0.9)
     ga, gb = _pt(*hand, sword_ang + 90, 2.5), _pt(*hand, sword_ang - 90, 2.5)
     s.seg(*ga, *gb, "gold", 0.7)
     _limb(s, sh, pose["na"][0], 5, pose["na"][1], 5, "red", 1.4)
     s.rect(round(hand[0]) - 1, round(hand[1]) - 1, round(hand[0]) + 1, round(hand[1]) + 1, "skin")
     img = s.render(MARK_PAL)
-    ex, ey = hc[0] + 5, hc[1] - 1
+    def F(df, du):  # facial feature positions, rotated with the head
+        return round(face[0] + df * fd[0] + du * ud[0]), round(face[1] + df * fd[1] + du * ud[1])
+
+    ex, ey = F(1.5, 2.0)
     if expression == "annoyed":
         dots(img, [(ex, ey + 1), (ex + 1, ey + 1), (ex, ey + 2), (ex + 1, ey + 2)], "#261a2e")
         dots(img, [(ex - 1, ey), (ex, ey), (ex + 1, ey)], "#1b1222")
     else:
         dots(img, [(ex, ey), (ex + 1, ey), (ex, ey + 1), (ex + 1, ey + 1), (ex, ey + 2), (ex + 1, ey + 2)], "#261a2e")
         dots(img, [(ex, ey)], "#ffffff")
-    dots(img, [(ex - 1, ey + 4), (ex + 1, ey + 4)], "#b9683e")  # freckles
-    dots(img, [(ex + 2, ey + 5)], "#7a3a3a")  # mouth
+    dots(img, [F(1.0, -2.0), F(3.0, -2.0)], "#b9683e")  # freckles
+    dots(img, [F(3.5, -3.5)], "#7a3a3a")  # mouth
     if pose.get("trail"):
         cx, cy = sh
         for a in range(110, 206, 6):
