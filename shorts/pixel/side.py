@@ -77,26 +77,30 @@ MARK_PAL = {
 
 
 def mark_side(pose=IDLE, expression="calm"):
+    """Optional pose keys: legs=(thigh, shin) lengths, leg_r (thickness), lean (px the upper body leans forward)."""
     s = Sprite(SW, SH)
-    up = pose.get("up", 0)
-    hip, sh = (HIP[0], HIP[1] + up), (SHOULDER[0] + 1, SHOULDER[1] + up)
+    thigh, shin = pose.get("legs", (6, 6))
+    leg_r = pose.get("leg_r", 1.6)
+    lean = pose.get("lean", 0)
+    up = pose.get("up", 0) + (12 - thigh - shin)  # shorter legs: lower the body so feet stay on the ground
+    hip, sh = (HIP[0], HIP[1] + up), (SHOULDER[0] + 1 + lean, SHOULDER[1] + up)
     # far limbs (darker, behind the body)
     fa = _limb(s, sh, pose["fa"][0], 5, pose["fa"][1], 5, "redfar", 1.3)
     s.rect(round(fa[0]) - 1, round(fa[1]) - 1, round(fa[0]) + 1, round(fa[1]) + 1, "skinfar")
-    fl = _limb(s, hip, pose["fl"][0], 6, pose["fl"][1], 6, "blackfar", 1.5)
+    fl = _limb(s, hip, pose["fl"][0], thigh, pose["fl"][1], shin, "blackfar", leg_r - 0.1)
     _foot(s, fl, "bootfar")
-    # torso and hood back
-    s.poly([(18, 21 + up), (27, 21 + up), (27, 33 + up), (18, 33 + up)], "red")
+    # torso (leaning: the top shifts forward)
+    s.poly([(18 + lean, 21 + up), (27 + lean, 21 + up), (27, 33 + up), (18, 33 + up)], "red")
     s.rect(18, 31 + up, 27, 33 + up, "black")
     # near leg
-    nl = _limb(s, hip, pose["nl"][0], 6, pose["nl"][1], 6, "black", 1.6)
+    nl = _limb(s, hip, pose["nl"][0], thigh, pose["nl"][1], shin, "black", leg_r)
     _foot(s, nl, "boot")
     # head: hood with face opening at the front
-    hc = (23, 13 + up)
+    hc = (23 + lean, 13 + up)
     s.ellipse(hc[0], hc[1], 7.5, 7.5, "red")
-    s.rect(16, 6 + up, 18, 8 + up, "red")  # hood tip at the back
+    s.rect(16 + lean, 6 + up, 18 + lean, 8 + up, "red")  # hood tip at the back
     s.ellipse(hc[0] + 3.5, hc[1] + 1.5, 4.2, 5.2, "skin")
-    for x, bottom in zip(range(24, 31), (10, 11, 10, 9, 11, 10, 9)):
+    for x, bottom in zip(range(24 + lean, 31 + lean), (10, 11, 10, 9, 11, 10, 9)):
         for y in range(8 + up, bottom + 1 + up):
             if s.get(x, y) in ("skin", "red"):
                 s.g[y][x] = "hair"
