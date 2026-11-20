@@ -1,0 +1,250 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Marker; src: url(../fonts/PermanentMarker-Regular.ttf); }
+@font-face { font-family: Hand; src: url(../fonts/PatrickHand-Regular.ttf); }
+@font-face { font-family: Bangers; src: url(../fonts/Bangers-Regular.ttf); }
+html, body { margin: 0; background: #000; overflow: hidden; }
+svg { display: block; }
+</style></head><body>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// Three 8-second style samples of the same moment: "Six hours trapped in this store... and then the lights went out."
+// draw(style, t) renders one frame. WORDS = [[word, start, end], ...]; L = lights-out time (s).
+const W = 1080, H = 1920, INK = '#161616', PAPER = '#f6f3ea', ORANGE = '#ff7a1a', RED = '#e63946';
+let WORDS = [], L = 5.0, END = 8.0;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = k => { k = clamp(k); return k * k * (3 - 2 * k); };
+const lerp = (a, b, k) => a + (b - a) * k;
+
+function chunks() {  // subtitle chunks of up to 3 words
+  const out = []; let cur = [];
+  WORDS.forEach((w, i) => { cur.push(w); if (cur.length === 3 || /[.!?,]$/.test(w[0]) || i === WORDS.length - 1) { out.push(cur); cur = []; } });
+  return out.map((c, i) => [c[0][1], i + 1 < out.length ? out[i + 1][0][1] : c[c.length - 1][2] + 0.6, c.map(w => w[0]).join(' ')]);
+}
+function caption(t, font, size, fill, stroke, y, upper = false) {
+  const c = chunks().find(c => c[0] <= t && t < c[1]);
+  if (!c) return '';
+  const txt = upper ? c[2].toUpperCase() : c[2];
+  return `<text x="540" y="${y}" text-anchor="middle" font-family="${font}" font-size="${size}" fill="${fill}" stroke="${stroke}" stroke-width="${size * 0.16}" paint-order="stroke" stroke-linejoin="round">${txt}</text>`;
+}
+
+// ---------------------------------------------------------------- shared: the D-class (placeholder design)
+function dclass(o = {}) {
+  const P = Object.assign({ ink: INK, paper: PAPER, suit: ORANGE, look: 0, mouth: 'worry', sweat: true, lw: 8, lamp: true }, o);
+  let c = '';
+  c += `<path d="M-95,40 Q-110,-150 -70,-200 L70,-200 Q110,-150 95,40 Z" fill="${P.suit}" stroke="${P.ink}" stroke-width="${P.lw}" stroke-linejoin="round"/>`;
+  c += `<rect x="-62" y="-120" width="124" height="44" rx="6" fill="${P.paper}" stroke="${P.ink}" stroke-width="${P.lw * .6}"/><text x="0" y="-86" text-anchor="middle" font-family="Hand" font-size="34" fill="${P.ink}">D-0427</text>`;
+  c += `<path d="M-55,40 L-60,190 M55,40 L60,190" stroke="${P.ink}" stroke-width="44" stroke-linecap="round"/><path d="M-55,40 L-60,190 M55,40 L60,190" stroke="${P.suit}" stroke-width="30" stroke-linecap="round"/>`;
+  c += `<ellipse cx="-70" cy="200" rx="44" ry="22" fill="${P.ink}"/><ellipse cx="72" cy="200" rx="44" ry="22" fill="${P.ink}"/>`;
+  c += `<path d="M85,-170 Q170,-120 180,-30" stroke="${P.ink}" stroke-width="40" fill="none" stroke-linecap="round"/><path d="M85,-170 Q170,-120 180,-30" stroke="${P.suit}" stroke-width="27" fill="none" stroke-linecap="round"/>`;
+  c += `<circle cx="180" cy="-25" r="26" fill="${P.paper}" stroke="${P.ink}" stroke-width="6"/>`;
+  if (P.lamp) c += `<path d="M180,-25 L220,-210 L170,-300" stroke="${P.ink}" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M130,-300 L210,-300 L190,-350 L150,-350 Z" fill="${P.paper}" stroke="${P.ink}" stroke-width="7"/>`;
+  c += `<path d="M-85,-170 Q-150,-110 -40,-60" stroke="${P.ink}" stroke-width="40" fill="none" stroke-linecap="round"/><path d="M-85,-170 Q-150,-110 -40,-60" stroke="${P.suit}" stroke-width="27" fill="none" stroke-linecap="round"/>`;
+  c += `<circle cx="0" cy="-330" r="135" fill="${P.paper}" stroke="${P.ink}" stroke-width="${P.lw}"/>`;
+  c += `<path d="M-120,-380 Q-60,-500 40,-470 Q120,-450 125,-370 Q90,-420 40,-410 Q-20,-440 -120,-380 Z" fill="${P.ink}"/>`;
+  const big = P.mouth === 'scream';
+  for (const ex of [-48, 48]) {
+    c += `<circle cx="${ex}" cy="-330" r="${big ? 38 : 30}" fill="#fff" stroke="${P.ink}" stroke-width="6"/>`;
+    c += `<circle cx="${ex + P.look * 10}" cy="-324" r="${big ? 6 : 9}" fill="${P.ink}"/>`;
+  }
+  c += `<path d="M-84,-368 Q-52,-372 -22,-394 M22,-394 Q52,-372 84,-368" stroke="${P.ink}" stroke-width="7" fill="none" stroke-linecap="round" transform="translate(0,${big ? -14 : 0})"/>`;
+  if (big) c += `<ellipse cx="0" cy="-245" rx="30" ry="40" fill="${P.ink}"/>`;
+  else c += `<path d="M-38,-250 q12,-14 24,0 q12,14 24,0 q12,-14 24,0" stroke="${P.ink}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  if (P.sweat) c += `<path d="M118,-400 q14,26 0,40 q-14,-14 0,-40 Z M-130,-360 q10,20 0,30 q-10,-10 0,-30 Z" fill="#7fc8ff" stroke="${P.ink}" stroke-width="4"/>`;
+  return c;
+}
+
+// ---------------------------------------------------------------- shared: the endless aisle in one-point perspective
+function aisle(o) {
+  const { ink, paper, lampsOn, VX = 540, VY = 860, hatch = true, lw = 1 } = o;
+  const P = (x, y, k) => [VX + (x - VX) * k, VY + (y - VY) * k];
+  let s = '';
+  for (let i = -6; i <= 6; i++) s += `<line x1="${VX + i * 260}" y1="1720" x2="${VX}" y2="${VY}" stroke="${ink}" stroke-width="${3 * lw}" opacity=".35"/>`;
+  for (let k = 1; k > 0.02; k *= 0.72) {
+    const fy = P(0, 1720, k)[1], cy = P(0, 260, k)[1];
+    s += `<line x1="0" y1="${fy}" x2="${W}" y2="${fy}" stroke="${ink}" stroke-width="${(3 * k + 1) * lw}" opacity=".35"/><line x1="0" y1="${cy}" x2="${W}" y2="${cy}" stroke="${ink}" stroke-width="${(3 * k + 1) * lw}" opacity=".3"/>`;
+  }
+  for (const side of [-1, 1]) {
+    let k = 1;
+    for (let n = 0; n < 9; n++) {
+      const k2 = k * 0.74, xo = VX + side * 520, xi = VX + side * 300, q = (x, y, kk) => P(x, y, kk).join(',');
+      s += `<polygon points="${q(xo, 1600, k)} ${q(xo, 470, k)} ${q(xo, 470, k2)} ${q(xo, 1600, k2)}" fill="${paper}" stroke="${ink}" stroke-width="${(6 * k + 1.5) * lw}" stroke-linejoin="round"/>`;
+      for (let b = 0; b < 4; b++) {
+        const y = 600 + b * 260;
+        s += `<line x1="${P(xo, y, k)[0]}" y1="${P(xo, y, k)[1]}" x2="${P(xo, y, k2)[0]}" y2="${P(xo, y, k2)[1]}" stroke="${ink}" stroke-width="${(5 * k + 1) * lw}"/>`;
+        if (k > 0.2) for (let j = 0; j < 3; j++) {
+          const kk = k - (k - k2) * (0.15 + j * 0.3), [bx, by] = P(xo, y, kk), bw = 60 * kk, bh = (90 + ((n + b + j) % 3) * 30) * kk;
+          s += `<rect x="${bx - (side < 0 ? 0 : bw)}" y="${by - bh}" width="${bw}" height="${bh}" fill="${hatch && (n + b + j) % 4 === 0 ? 'url(#hatch)' : paper}" stroke="${ink}" stroke-width="${(3 * kk + 1) * lw}"/>`;
+        }
+      }
+      if (n < 4) {
+        const [sx, sy] = P(xi + side * 40, 420, k);
+        s += `<line x1="${sx}" y1="${P(0, 300, k)[1]}" x2="${sx}" y2="${sy - 30 * k}" stroke="${ink}" stroke-width="${(3 * k + 1) * lw}"/><rect x="${sx - 70 * k}" y="${sy - 30 * k}" width="${140 * k}" height="${60 * k}" fill="${paper}" stroke="${ink}" stroke-width="${(4 * k + 1) * lw}"/>`;
+        s += `<text x="${sx}" y="${sy + 14 * k}" text-anchor="middle" font-family="Hand" font-size="${40 * k}" fill="${ink}">${side < 0 ? 4812 + n * 2 : 4813 + n * 2}</text>`;
+      }
+      k = k2;
+    }
+  }
+  let i = 0;
+  for (let k = 0.9; k > 0.05; k *= 0.74, i++) {
+    const [lx, ly] = P(VX, 330, k), on = lampsOn(i);
+    s += `<line x1="${lx}" y1="${P(0, 260, k)[1]}" x2="${lx}" y2="${ly}" stroke="${ink}" stroke-width="${(2 * k + 1) * lw}"/>`;
+    s += `<path d="M${lx - 50 * k},${ly + 30 * k} L${lx - 20 * k},${ly} L${lx + 20 * k},${ly} L${lx + 50 * k},${ly + 30 * k} Z" fill="${on ? paper : ink}" stroke="${ink}" stroke-width="${(3 * k + 1) * lw}"/>`;
+    if (on) s += `<path d="M${lx - 34 * k},${ly + 44 * k} l-10,${18 * k} M${lx},${ly + 46 * k} l0,${20 * k} M${lx + 34 * k},${ly + 44 * k} l10,${18 * k}" stroke="${ink}" stroke-width="${(2 * k + 1) * lw}"/>`;
+  }
+  return s;
+}
+
+function staff(x, y, s, ink, paper, shirt = '#ffd23f') {
+  return `<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="-205" rx="26" ry="32" fill="${paper}" stroke="${ink}" stroke-width="6"/>
+    <path d="M-30,-170 L30,-170 L36,-60 L-36,-60 Z" fill="${shirt}" stroke="${ink}" stroke-width="6"/>
+    <path d="M-30,-160 L-48,-60 M30,-160 L48,-60 M-18,-60 L-22,30 M18,-60 L22,30" stroke="${ink}" stroke-width="7" fill="none" stroke-linecap="round"/></g>`;
+}
+
+// ================================================================ 1. DOODLE + GAME HUD (characters on 12 fps, line boil)
+function doodle(t) {
+  const t12 = Math.floor(t * 12) / 12, seed = Math.floor(t * 12) % 3 + 1, dark = t >= L;
+  const kd = ease((t - L) / 0.25);
+  let g = `<defs><filter id="wob"><feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" seed="${seed}"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter>
+    <filter id="wob2"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="${seed + 5}"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter>
+    <pattern id="hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="14" stroke="${INK}" stroke-width="2.4" opacity=".55"/></pattern>
+    <radialGradient id="torch" cx=".5" cy=".7" r=".42"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".6" stop-color="#000" stop-opacity=".55"/><stop offset="1" stop-color="#000" stop-opacity=".93"/></radialGradient></defs>`;
+  g += `<rect width="${W}" height="${H}" fill="${PAPER}"/>`;
+  const push = 1 + 0.06 * ease(t / END);  // slow push-in, smooth at 24 fps
+  let world = `<g filter="url(#wob)">${aisle({ ink: INK, paper: PAPER, lampsOn: i => !dark || i > 99 })}`;
+  // the staff: one far away before, three much closer after lights out
+  if (!dark) world += staff(580, 1010, .62, INK, PAPER);
+  else world += staff(330, 1180, 1.05, INK, PAPER) + staff(760, 1230, 1.15, INK, PAPER) + staff(560, 1060, .8, INK, PAPER);
+  world += `</g>`;
+  // the D-class: idle breathing on twos; glances back at 2s; startles at lights out
+  const bob = Math.round(Math.sin(t12 * 4) * 4), look = t12 > 2 && t12 < 3.4 ? 1 : (t12 >= L ? 0 : -0.5);
+  world += `<g filter="url(#wob2)" transform="translate(470,${1500 + bob - (dark ? Math.round(18 * Math.exp(-(t12 - L) * 6)) : 0)}) scale(.92)">${dclass({ look, mouth: dark ? 'scream' : 'worry' })}</g>`;
+  g += `<g transform="translate(540,1300) scale(${push}) translate(-540,-1300)">${world}</g>`;
+  if (dark) g += `<rect width="${W}" height="${H}" fill="url(#torch)" opacity="${kd}"/>`;
+  // HUD (24 fps: meters move smoothly)
+  const surv = lerp(34, 9, ease((t - L) / 0.6)), staffK = t < L ? 0.35 + 0.1 * Math.sin(t * 2) : 1, hunger = 62;
+  const sec = Math.min(60, Math.floor(50 + t * 10 / L));
+  const clock = t < L ? `21:59:${String(Math.min(59, sec)).padStart(2, '0')}` : '22:00:00';
+  const box = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" fill="${PAPER}" stroke="${INK}" stroke-width="6"/>`;
+  const bar = (x, y, w, label, frac, col, val, blink) => `<text x="${x}" y="${y}" font-family="Hand" font-size="38" fill="${INK}">${label}</text>
+    <text x="${x + w}" y="${y}" text-anchor="end" font-family="Hand" font-size="38" fill="${col}" opacity="${blink ? (Math.floor(t * 6) % 2 ? 1 : .3) : 1}">${val}</text>
+    <rect x="${x}" y="${y + 14}" width="${w}" height="30" rx="8" fill="${PAPER}" stroke="${INK}" stroke-width="5"/>
+    <rect x="${x + 5}" y="${y + 19}" width="${(w - 10) * frac}" height="20" rx="5" fill="${col}"/>`;
+  let hud = box(36, 360, 470, 330) + bar(66, 420, 410, 'SURVIVAL', surv / 100, ORANGE, `${Math.round(surv)}%`, dark);
+  hud += bar(66, 520, 410, 'HUNGER', hunger / 100, '#2a9d8f', '62%') + bar(66, 620, 410, 'STAFF NEARBY', staffK, RED, dark ? 'RUN!!' : 'LOW', dark);
+  hud += box(574, 360, 470, 210) + `<text x="809" y="420" text-anchor="middle" font-family="Hand" font-size="38" fill="${INK}">HOUR 6</text>`;
+  hud += `<text x="809" y="505" text-anchor="middle" font-family="Marker" font-size="72" fill="${RED}">${clock}</text>`;
+  hud += `<text x="809" y="548" text-anchor="middle" font-family="Hand" font-size="32" fill="${INK}">${dark ? 'LIGHTS: OFF' : 'lights out at 22:00'}</text>`;
+  hud += `<g transform="translate(809,640) rotate(-6)"><rect x="-150" y="-44" width="300" height="88" rx="10" fill="#ffd23f" stroke="${INK}" stroke-width="6"/><text y="16" text-anchor="middle" font-family="Marker" font-size="50" fill="${INK}">EUCLID</text></g>`;
+  g += `<g filter="url(#wob2)">${hud}</g>`;
+  const tt = (s, y, z, f) => `<text x="540" y="${y}" text-anchor="middle" font-family="Marker" font-size="${z}" fill="${f}" stroke="${PAPER}" stroke-width="${z * .18}" paint-order="stroke">${s}</text>`;
+  g += `<g filter="url(#wob2)">${tt('WHAT IF YOU GOT', 120, 86, INK)}${tt('TRAPPED IN', 215, 86, INK)}${tt('SCP-3008?', 318, 104, RED)}</g>`;
+  g += caption(t, 'Marker', 82, dark ? '#ffffff' : INK, dark ? INK : PAPER, 1830, true);
+  return g;
+}
+
+// ================================================================ 2. COMIC PANELS (camera glides panel to panel, 24 fps)
+function comic(t) {
+  const dark = t >= L;
+  let page = `<defs><pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="9" cy="9" r="3.4" fill="#000" opacity=".2"/></pattern>
+    <pattern id="hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="14" stroke="#111" stroke-width="2.4" opacity=".5"/></pattern>
+    <clipPath id="pa"><rect x="40" y="40" width="1000" height="760"/></clipPath><clipPath id="pb"><rect x="40" y="830" width="480" height="560"/></clipPath>
+    <clipPath id="pc"><rect x="550" y="830" width="490" height="560"/></clipPath><clipPath id="pd"><rect x="40" y="1420" width="1000" height="460"/></clipPath></defs>`;
+  page += `<rect width="${W}" height="${H}" fill="#fff8e7"/>`;
+  // panel A: the endless store, wide
+  page += `<g clip-path="url(#pa)"><rect x="40" y="40" width="1000" height="760" fill="#ffe9a8"/><g transform="translate(40,40) scale(.93,.47) translate(0,-180)">${aisle({ ink: '#111', paper: '#ffe9a8', lampsOn: () => true, lw: 1.3 })}</g>
+    <rect x="40" y="40" width="1000" height="760" fill="url(#dots)"/><g transform="translate(540,760) scale(.42)">${dclass({ ink: '#111', lw: 10, look: -1 })}</g></g>`;
+  page += `<rect x="40" y="40" width="1000" height="760" fill="none" stroke="#111" stroke-width="9"/>`;
+  page += `<rect x="64" y="64" width="380" height="86" fill="#ffe14d" stroke="#111" stroke-width="6"/><text x="254" y="125" text-anchor="middle" font-family="Bangers" font-size="58" fill="#111">HOUR 6...</text>`;
+  // panel B: close on his face
+  page += `<g clip-path="url(#pb)"><rect x="40" y="830" width="480" height="560" fill="#9fd3ff"/><rect x="40" y="830" width="480" height="560" fill="url(#dots)"/>
+    <g transform="translate(290,1650) scale(1.25)">${dclass({ ink: '#111', lw: 10, lamp: false, look: 1 })}</g></g>`;
+  page += `<rect x="40" y="830" width="480" height="560" fill="none" stroke="#111" stroke-width="9"/>`;
+  page += `<path d="M70,860 h290 a26,26 0 0 1 26,26 v60 a26,26 0 0 1 -26,26 h-150 l-36,46 l4,-46 h-108 a26,26 0 0 1 -26,-26 v-60 a26,26 0 0 1 26,-26 Z" fill="#fff" stroke="#111" stroke-width="6"/>
+    <text x="215" y="935" text-anchor="middle" font-family="Bangers" font-size="54" fill="#111">NO EXITS...</text>`;
+  // panel C: a staff member at the end of the aisle, watching
+  page += `<g clip-path="url(#pc)"><rect x="550" y="830" width="490" height="560" fill="#ffb26b"/>`;
+  for (let i = 0; i < 14; i++) { const a = i * 25.7 * Math.PI / 180; page += `<path d="M795,1080 L${795 + 900 * Math.cos(a)},${1080 + 900 * Math.sin(a)} L${795 + 900 * Math.cos(a + .2)},${1080 + 900 * Math.sin(a + .2)} Z" fill="#ff9a3c"/>`; }
+  page += `${staff(795, 1400, 1.9, '#111', '#fff8e7')}</g><rect x="550" y="830" width="490" height="560" fill="none" stroke="#111" stroke-width="9"/>`;
+  page += `<rect x="570" y="850" width="300" height="74" fill="#ffe14d" stroke="#111" stroke-width="6"/><text x="720" y="904" text-anchor="middle" font-family="Bangers" font-size="50" fill="#111">IT'S WATCHING.</text>`;
+  // panel D: lights out
+  const kd = clamp((t - L) / 0.15);
+  page += `<g clip-path="url(#pd)"><rect x="40" y="1420" width="1000" height="460" fill="${dark ? '#0b0b12' : '#ffe9a8'}"/>`;
+  if (dark) {
+    for (const [x, y, s] of [[200, 1880, 1.1], [420, 1860, .9], [700, 1890, 1.2], [900, 1860, .95]]) page += `<g opacity="${kd * .9}">${staff(x, y, s, '#2a2a3a', '#3a3a4c', '#3a3424')}</g>`;
+    page += `<g transform="translate(540,1880) scale(.75)"><circle cx="-48" cy="-330" r="38" fill="#fff"/><circle cx="48" cy="-330" r="38" fill="#fff"/><circle cx="-48" cy="-324" r="6" fill="#000"/><circle cx="48" cy="-324" r="6" fill="#000"/></g>`;
+  }
+  page += `</g><rect x="40" y="1420" width="1000" height="460" fill="none" stroke="#111" stroke-width="9"/>`;
+  if (dark) page += `<text x="540" y="1620" text-anchor="middle" font-family="Bangers" font-size="${190 + 40 * Math.exp(-(t - L) * 8)}" fill="#ffe14d" stroke="#111" stroke-width="16" paint-order="stroke" transform="rotate(-8 540 1620)" letter-spacing="6">CLUNK!</text>`;
+  // camera: A -> B -> C -> D, gliding with ease; shake on CLUNK
+  const shots = [[540, 960, 1.0, 0], [540, 420, 1.3, 0.7], [280, 1110, 1.75, 2.75], [795, 1110, 1.75, 4.6], [540, 1650, 1.05, L]];
+  let cam = shots[0];
+  for (let i = 1; i < shots.length; i++) {
+    const [x, y, z, at] = shots[i], k = ease((t - at) / 0.5);
+    if (t >= at) cam = [lerp(cam[0], x, k), lerp(cam[1], y, k), lerp(cam[2], z, k)];
+  }
+  const sh = dark ? 14 * Math.exp(-(t - L) * 7) * Math.sin(t * 90) : 0;
+  let g = `<rect width="${W}" height="${H}" fill="#fff8e7"/><g transform="translate(${540 + sh},${960}) scale(${cam[2]}) translate(${-cam[0]},${-cam[1]})">${page}</g>`;
+  g += caption(t, 'Bangers', 96, '#ffe14d', '#111', 1830, true);
+  return g;
+}
+
+// ================================================================ 3. MINIMAL CINEMATIC (24 fps, light and type)
+function cinematic(t) {
+  const VX = 540, VY = 900;
+  const P = (x, y, k) => [VX + (x - VX) * k, VY + (y - VY) * k];
+  let g = `<defs><radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe9b8" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/></radialGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3d6" stop-opacity=".38"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/></linearGradient>
+    <radialGradient id="vig" cx=".5" cy=".5" r=".72"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".85"/></radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="6"/></filter><filter id="grain"><feTurbulence baseFrequency=".9" seed="${Math.floor(t * 24)}"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .07 0"/></filter></defs>`;
+  g += `<rect width="${W}" height="${H}" fill="#0a0c12"/>`;
+  const push = 1 + 0.1 * ease(t / END);
+  let s = '';
+  // lamps go out one by one from the far end towards him
+  const ks = []; for (let k = 0.95; k > 0.06; k *= 0.78) ks.push(k);
+  const offAt = i => L + (ks.length - 1 - i) * 0.07;
+  // shelves: dark silhouettes with faint rim light
+  for (const side of [-1, 1]) for (let k = 1, n = 0; n < 10; n++, k *= 0.78) {
+    const k2 = k * 0.78, xo = VX + side * 560, q = (x, y, kk) => P(x, y, kk).join(',');
+    s += `<polygon points="${q(xo, 1650, k)} ${q(xo, 450, k)} ${q(xo, 450, k2)} ${q(xo, 1650, k2)}" fill="#11141c" stroke="#2a3040" stroke-width="${2 * k + .5}"/>`;
+  }
+  ks.forEach((k, i) => {
+    const on = t < offAt(i) || (t < offAt(i) + 0.06 && Math.floor(t * 40) % 2);
+    const [lx, ly] = P(VX, 330, k), [, fy] = P(VX, 1650, k);
+    s += `<rect x="${lx - 46 * k}" y="${ly}" width="${92 * k}" height="${10 * k}" fill="${on ? '#fff6e0' : '#1c2030'}"/>`;
+    if (on) {
+      s += `<path d="M${lx - 40 * k},${ly + 10 * k} L${lx + 40 * k},${ly + 10 * k} L${lx + 260 * k},${fy} L${lx - 260 * k},${fy} Z" fill="url(#beam)"/>`;
+      s += `<ellipse cx="${lx}" cy="${fy}" rx="${320 * k}" ry="${60 * k}" fill="url(#pool)"/>`;
+    }
+  });
+  // the staff, only after dark: pale faceless heads in rows
+  if (t >= L + 0.5) {
+    const a = clamp((t - L - 0.5) / 1.2);
+    for (const [x, k] of [[420, .55], [650, .5], [520, .35], [300, .7], [790, .66]]) {
+      const [hx, hy] = P(x, 1650, k);
+      s += `<g opacity="${a * .85}"><rect x="${hx - 34 * k}" y="${hy - 380 * k}" width="${68 * k}" height="${380 * k}" fill="#05060a"/><ellipse cx="${hx}" cy="${hy - 410 * k}" rx="${30 * k}" ry="${38 * k}" fill="#cfd3dc" opacity=".75"/></g>`;
+    }
+  }
+  // him: a small silhouette in the last pool of light
+  const [mx, my] = P(VX, 1650, 0.95);
+  s += `<g transform="translate(${mx},${my - 4}) scale(.32)">${dclass({ ink: '#05060a', paper: '#05060a', suit: '#3a1f10', lamp: false, sweat: false, lw: 0 })}</g>`;
+  g += `<g transform="translate(540,1200) scale(${push}) translate(-540,-1200)">${s}</g>`;
+  g += `<rect width="${W}" height="${H}" fill="url(#vig)"/><rect width="${W}" height="${H}" filter="url(#grain)"/>`;
+  // type: thin, wide-tracked, lower-left counters
+  const hrs = t < L ? 5 + clamp(t / L) * 0.9999 : 6;
+  const hh = Math.floor(hrs), mm = Math.floor((hrs - hh) * 60), ss = Math.floor(((hrs - hh) * 60 - mm) * 60);
+  const T = (txt, x, y, z, op = 1, w = 200, ls = 6) => `<text x="${x}" y="${y}" font-family="Inter" font-weight="${w}" font-size="${z}" fill="#e8ecf5" opacity="${op}" letter-spacing="${ls}">${txt}</text>`;
+  g += T('SCP-3008', 80, 190, 40, .8, 300, 14) + T('THE ENDLESS STORE', 80, 240, 30, .5, 200, 10);
+  g += T(`TIME TRAPPED   ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`, 80, 330, 36, .85, 200, 6);
+  g += T(`AISLE   ${4812 + Math.floor(t * 3)}`, 80, 390, 36, .6, 200, 6) + T("EXITS FOUND   0", 80, 450, 36, .6, 200, 6);
+  if (t >= L) g += T("LIGHTS   OFF", 80, 510, 36, (Math.floor(t * 3) % 2 ? 1 : .4), 300, 6);
+  const c = chunks().find(c => c[0] <= t && t < c[1]);
+  if (c) g += `<text x="540" y="1860" text-anchor="middle" font-family="Inter" font-weight="300" font-size="54" fill="#ffffff" letter-spacing="2">${c[2]}</text>`;
+  return g;
+}
+
+function draw(style, t) {
+  document.getElementById('c').innerHTML = style === 'doodle' ? doodle(t) : style === 'comic' ? comic(t) : cinematic(t);
+}
+</script></body></html>
