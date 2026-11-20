@@ -1,0 +1,33 @@
+{
+  "_about": "Approved voices (Qwen3-TTS, Apache 2.0). Each 'wav' is the reference take: clone new lines from it so the voice never drifts. 'voice' is the VoiceDesign description it was made from.",
+  "narrator": {
+    "voice": "A seventeen-year-old American boy with a youthful but deepened voice, super hyped and animated, telling his friends an unbelievable story at a quick pace with excited emphasis on key words.",
+    "wav": "narrator.wav",
+    "text": "In this world, everyone can see their luck. Most people get fifty percent. But Zeke? He was born with zero. Then one morning... everything changed."
+  },
+  "mark": {
+    "voice": "A fifteen-year-old boy with a dry, deadpan, unimpressed voice. Calm, flat and a little tired, like the only sensible person in the room. Speaks plainly with a subtle sarcastic edge.",
+    "wav": "mark.wav",
+    "text": "Or... I could just do this."
+  },
+  "reginald": {
+    "voice": "A middle-aged man with a deep, booming baritone voice, low-pitched and chesty. Extremely dramatic and overconfident, like a heroic knight in an old adventure film, projecting every word with gusto.",
+    "wav": "reginald.wav",
+    "text": "I am Sir Reginald, the bravest knight in all the land, and I fear nothing!"
+  },
+  "vexmore": {
+    "voice": "A deep, rich, sinister male voice with a theatrical villain delivery. Slow and menacing, savouring every word, then bursting into an evil laugh.",
+    "wav": "vexmore.wav",
+    "text": "Mwahahaha! You shall never cross this bridge, hero! Prepare for the battle of the century!"
+  },
+  "bumblewick": {
+    "voice": "A very old man with a wobbly, raspy, absent-minded voice. Slow and rambling, kind but confused, pausing as if he forgot what he was saying.",
+    "wav": "bumblewick.wav",
+    "text": "Hmm... was that... allowed?"
+  },
+  "grub": {
+    "voice": "A small goblin creature with a high-pitched, squeaky, nasal voice. Frantic and panicky, talking fast.",
+    "wav": "grub.wav",
+    "text": "Boss?! BOSS! Oh no, oh no, oh no!"
+  }
+}

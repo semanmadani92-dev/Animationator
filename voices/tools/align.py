@@ -1,6 +1,6 @@
 """Word timings for each voiced line: Whisper timestamps mapped onto the script's own words.
 
-Usage: python align.py <script.json> <audio_dir> <out.json>
+Usage: python voices/tools/align.py <script.json> <audio_dir> <out.json>
 The displayed words always come from the script; Whisper only supplies timing.
 Words Whisper missed are spread evenly between their matched neighbours.
 """
