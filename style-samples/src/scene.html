@@ -1,0 +1,107 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Lilita; src: url(fonts/LilitaOne-Regular.ttf); }
+@font-face { font-family: Hand; src: url(fonts/PatrickHand-Regular.ttf); }
+@font-face { font-family: Bangers; src: url(fonts/Bangers-Regular.ttf); }
+html, body { margin: 0; background: #000; }
+svg { display: block; }
+</style>
+<script src="art.js"></script>
+</head><body>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+const style = new URLSearchParams(location.search).get('s') || 'flat';
+const W = 1080, H = 1920;
+let g = '';
+
+function title(font, fill, stroke, size, lines, y0, gap, extra = '') {
+  return lines.map((l, i) => `<text x="540" y="${y0 + i * gap}" text-anchor="middle" font-family="${font}" font-size="${size}"
+    fill="${fill}" stroke="${stroke}" stroke-width="${size * 0.16}" paint-order="stroke" stroke-linejoin="round" ${extra}>${l}</text>`).join('');
+}
+
+if (style === 'flat') {
+  g += `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6c5ce7"/><stop offset=".55" stop-color="#74b9ff"/><stop offset="1" stop-color="#ffeaa7"/></linearGradient></defs>`;
+  g += `<rect width="${W}" height="${H}" fill="url(#sky)"/>`;
+  // soft clouds and a far city
+  for (const [x, y, s] of [[180, 520, 1], [860, 700, .8], [620, 420, .6]]) g += `<g opacity=".8" transform="translate(${x},${y}) scale(${s})"><ellipse rx="110" ry="40" fill="#fff"/><circle cx="-40" cy="-30" r="45" fill="#fff"/><circle cx="35" cy="-40" r="55" fill="#fff"/></g>`;
+  const city = [[0, 1180, 140], [130, 1080, 120], [240, 1230, 110], [340, 1010, 150], [480, 1150, 110], [580, 1060, 140], [710, 1200, 110], [810, 990, 150], [950, 1130, 130]];
+  for (const [x, y, w] of city) {
+    g += `<rect x="${x}" y="${y}" width="${w}" height="${H - y}" fill="#5f6fb8"/>`;
+    for (let wy = y + 30; wy < 1500; wy += 54) for (let wx = x + 22; wx < x + w - 30; wx += 40) g += `<rect x="${wx}" y="${wy}" width="18" height="26" rx="3" fill="${(wx + wy) % 3 ? '#8b9ae0' : '#ffeaa7'}"/>`;
+  }
+  g += `<rect y="1480" width="${W}" height="${H - 1480}" fill="#55607a"/><rect y="1480" width="${W}" height="18" fill="#7d89a6"/>`;
+  for (let x = 40; x < W; x += 200) g += `<rect x="${x}" y="1640" width="110" height="14" rx="7" fill="#ffd166" opacity=".8"/>`;
+  // floating stuff with drift shadows
+  g += `<ellipse cx="300" cy="1540" rx="150" ry="16" fill="#000" opacity=".15"/><ellipse cx="560" cy="1560" rx="120" ry="14" fill="#000" opacity=".15"/>`;
+  g += T(270, 1190, -14, .95, car('flat'));
+  g += T(860, 1000, 22, .9, cat('flat'));
+  g += T(190, 860, -25, 1, cup('flat'));
+  g += motion(270, 1290, 120, 3, '#fff') + motion(840, 1090, 100, 3, '#fff');
+  g += T(560, 1180, -12, 1.05, kid('flat'));
+  g += motion(500, 1280, 150, 3, '#fff');
+  // timer chip
+  g += `<g transform="translate(860,640)"><rect x="-120" y="-50" width="240" height="90" rx="45" fill="#2d3436"/><text y="22" text-anchor="middle" font-family="Lilita" font-size="62" fill="#ff7675">0:03</text></g>`;
+  g += title('Lilita', '#ffffff', '#2d3436', 92, ['WHAT IF GRAVITY', 'TURNED OFF', 'FOR 5 SECONDS?'], 210, 104);
+  g += title('Lilita', '#ffffff', '#2d3436', 64, ['everything just...'], 1700, 0) + title('Lilita', '#ffd166', '#2d3436', 110, ['FLOATS'], 1810, 0);
+}
+
+if (style === 'doodle') {
+  g += `<defs><filter id="wob"><feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="10"/></filter></defs>`;
+  g += `<rect width="${W}" height="${H}" fill="#fbf8f0"/>`;
+  for (let y = 120; y < H; y += 64) g += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#bcd3f2" stroke-width="3"/>`;
+  g += `<line x1="110" y1="0" x2="110" y2="${H}" stroke="#f2a7a7" stroke-width="4"/>`;
+  let d = '';
+  d += `<path d="M60,1500 Q300,1490 540,1505 T1020,1498" stroke="#1a1a1a" stroke-width="7" fill="none"/>`;
+  d += T(300, 1230, -14, .9, car('doodle')) + T(850, 1020, 22, .85, cat('doodle')) + T(220, 880, -25, 1, cup('doodle'));
+  d += T(580, 1200, -12, 1, kid('doodle'));
+  // hand-written labels with arrows
+  const lab = (x, y, t, ax, ay, ex, ey) => `<text x="${x}" y="${y}" font-family="Hand" font-size="50" fill="#1a1a1a">${t}</text><path d="M${ax},${ay} Q${(ax + ex) / 2 + 30},${(ay + ey) / 2 - 30} ${ex},${ey} m-18,-6 l18,6 l-6,18" stroke="#1a1a1a" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  d += lab(140, 1430, "my neighbour's car", 330, 1385, 330, 1300);
+  d += lab(700, 820, 'Mr. Whiskers', 860, 835, 860, 900);
+  d += lab(150, 690, 'my coffee :(', 230, 705, 220, 770);
+  d += lab(720, 1330, 'me', 760, 1300, 690, 1230);
+  d += `<path d="M300,1560 l40,0 m-20,-20 l0,40 M760,1590 l30,0 M880,1560 l24,24 m0,-24 l-24,24" stroke="#1a1a1a" stroke-width="5"/>`;
+  g += `<g filter="url(#wob)">${d}</g>`;
+  g += `<g filter="url(#wob)">` + title('Hand', '#1a1a1a', '#fbf8f0', 104, ['What if gravity', 'turned off for', '5 seconds?'], 230, 112) + `</g>`;
+  g += `<path d="M180,560 Q540,600 900,555" stroke="#ff6b6b" stroke-width="12" fill="none" stroke-linecap="round" filter="url(#wob)"/>`;
+  g += `<g filter="url(#wob)">` + title('Hand', '#1a1a1a', '#fbf8f0', 80, ['second 3: everything', 'is just... floating'], 1720, 90) + `</g>`;
+}
+
+if (style === 'comic') {
+  g += `<defs><pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="9" cy="9" r="3.4" fill="#000" opacity=".18"/></pattern>
+    <clipPath id="p1"><rect x="40" y="300" width="490" height="560"/></clipPath><clipPath id="p2"><rect x="550" y="300" width="490" height="560"/></clipPath>
+    <clipPath id="p3"><path d="M40,880 L1040,880 L1040,1880 L40,1880 Z"/></clipPath></defs>`;
+  g += `<rect width="${W}" height="${H}" fill="#fff8e7"/>`;
+  // title caption box
+  g += `<rect x="40" y="40" width="1000" height="230" fill="#ffe14d" stroke="#111" stroke-width="8"/>`;
+  g += title('Bangers', '#111', 'none', 96, ['WHAT IF GRAVITY TURNED', 'OFF FOR 5 SECONDS?'], 140, 100, 'letter-spacing="2"');
+  // panel 1: breakfast
+  g += `<g clip-path="url(#p1)"><rect x="40" y="300" width="490" height="560" fill="#9fd3ff"/><rect x="40" y="300" width="490" height="560" fill="url(#dots)"/>
+    <rect x="40" y="720" width="490" height="140" fill="#c98b55" stroke="#111" stroke-width="6"/>
+    ${T(290, 860, 0, .78, kid('comic', { la: [-30, 60], ra: [40, 100], ll: [0, 0], rl: [0, 0], expr: 'calm' }))}
+    ${T(330, 720, 0, .8, bowl('comic'))}</g>`;
+  g += `<rect x="40" y="300" width="490" height="560" fill="none" stroke="#111" stroke-width="8"/>`;
+  g += `<rect x="58" y="318" width="250" height="70" fill="#fff" stroke="#111" stroke-width="5"/><text x="183" y="368" text-anchor="middle" font-family="Bangers" font-size="44" fill="#111">8:00 AM...</text>`;
+  // panel 2: close-up, cereal rising
+  g += `<g clip-path="url(#p2)"><rect x="550" y="300" width="490" height="560" fill="#ffb26b"/>`;
+  for (let i = 0; i < 16; i++) { const a = i * 22.5 * Math.PI / 180; g += `<path d="M795,620 L${795 + 900 * Math.cos(a)},${620 + 900 * Math.sin(a)} L${795 + 900 * Math.cos(a + .2)},${620 + 900 * Math.sin(a + .2)} Z" fill="#ff9a3c"/>`; }
+  g += `${T(800, 1080, 0, 1.45, kid('comic', { la: [-10, 10], ra: [10, -10], expr: 'shock' }))}${loops(800, 420, 14, 230, ['#ffd14d', '#ff6b6b', '#6bd17a'], 2)}</g>`;
+  g += `<rect x="550" y="300" width="490" height="560" fill="none" stroke="#111" stroke-width="8"/>`;
+  g += `<path d="M600,360 h300 a30,30 0 0 1 30,30 v70 a30,30 0 0 1 -30,30 h-170 l-40,50 l5,-50 h-95 a30,30 0 0 1 -30,-30 v-70 a30,30 0 0 1 30,-30 Z" fill="#fff" stroke="#111" stroke-width="6"/>
+    <text x="750" y="440" text-anchor="middle" font-family="Bangers" font-size="56" fill="#111">UH... WHAT?</text>`;
+  // panel 3: floating out over the street
+  g += `<g clip-path="url(#p3)"><rect x="40" y="880" width="1000" height="1000" fill="#7ec8ff"/><rect x="40" y="880" width="1000" height="1000" fill="url(#dots)"/>`;
+  for (const [x, y, w] of [[40, 1500, 160], [200, 1420, 140], [340, 1560, 150], [700, 1450, 170], [870, 1380, 170]]) g += `<rect x="${x}" y="${y}" width="${w}" height="500" fill="#5a6fcf" stroke="#111" stroke-width="6"/>`;
+  g += `<rect x="40" y="1760" width="1000" height="140" fill="#666" stroke="#111" stroke-width="6"/>`;
+  g += T(300, 1500, -14, .85, car('comic')) + T(880, 1260, 24, .8, cat('comic'));
+  g += T(600, 1520, -14, 1.1, kid('comic'));
+  g += motion(560, 1610, 170, 3, '#111', 7) + motion(300, 1580, 120, 2, '#111', 7);
+  g += `</g><rect x="40" y="880" width="1000" height="1000" fill="none" stroke="#111" stroke-width="8"/>`;
+  g += `<text x="300" y="1060" font-family="Bangers" font-size="190" fill="#ffe14d" stroke="#111" stroke-width="14" paint-order="stroke" transform="rotate(-10 300 1060)" letter-spacing="6">WHOOSH!</text>`;
+  g += `<rect x="600" y="1780" width="420" height="80" fill="#fff" stroke="#111" stroke-width="5"/><text x="810" y="1838" text-anchor="middle" font-family="Bangers" font-size="54" fill="#111">GRAVITY: OFF</text>`;
+}
+
+document.getElementById('c').innerHTML = g;
+</script>
+</body></html>
