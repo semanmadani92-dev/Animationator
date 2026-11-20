@@ -80,7 +80,38 @@ def boing():
     return np.sin(2 * np.pi * (180 + 90 * np.sin(2 * np.pi * 12 * t) * np.exp(-t * 4)) * t) * np.exp(-t * 7) * 0.7
 
 
-EFFECTS = dict(whoosh=whoosh, skid=skid, chop=chop, creak=creak, thud=thud, clank=clank, magic=magic, pop=pop,
+def clang():
+    """Armour hitting a heavy door: metallic ring over a wooden thump."""
+    t = _t(0.6)
+    ring = sum(np.sin(2 * np.pi * f * t) * np.exp(-t * dd) for f, dd in ((410, 5), (873, 7), (1390, 9), (2210, 12)))
+    knock = np.sin(2 * np.pi * 95 * t) * np.exp(-t * 18)
+    return np.tanh((ring / 3 + knock) * 1.4) * 0.8
+
+
+def fizz(sec=0.8):
+    x = rng.standard_normal(int(sec * SR))
+    x = x - _lowpass(x, 4)
+    return x * np.linspace(0.05, 0.35, x.size)
+
+
+def boom():
+    t = _t(1.0)
+    low = np.sin(2 * np.pi * (60 * np.exp(-t * 2) + 25) * t) * np.exp(-t * 4)
+    burst = _lowpass(rng.standard_normal(t.size), 6) * np.exp(-t * 7) * 1.6
+    return np.tanh((low + burst) * 2.0) * 0.9
+
+
+def cluck(n=4):
+    out = []
+    for i in range(n):
+        t = _t(0.11 + 0.03 * (i % 2))
+        f = 520 + 260 * np.exp(-t * 40) + 40 * i
+        y = np.sign(np.sin(2 * np.pi * np.cumsum(f) / SR)) * np.exp(-t * 22) * 0.35
+        out += [_lowpass(y, 5), np.zeros(int(0.06 * SR))]
+    return np.concatenate(out)
+
+
+EFFECTS = dict(clang=clang, fizz=fizz, boom=boom, cluck=cluck, whoosh=whoosh, skid=skid, chop=chop, creak=creak, thud=thud, clank=clank, magic=magic, pop=pop,
                boing=boing)
 
 if __name__ == "__main__":
