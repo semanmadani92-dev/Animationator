@@ -1,0 +1,46 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000} svg{display:block}</style></head><body>
+<svg id="pfp" width="800" height="800" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="banner" width="2560" height="1440" viewBox="0 0 2560 1440" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+const NAME = new URLSearchParams(location.search).get('name') || 'LAST LIGHT';
+const defs = `<defs>
+  <radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe9b8" stop-opacity=".6"/><stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/></radialGradient>
+  <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3d6" stop-opacity=".5"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/></linearGradient>
+  <radialGradient id="vig" cx=".5" cy=".5" r=".7"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".8"/></radialGradient>
+  <filter id="grain"><feTurbulence baseFrequency=".9" seed="3"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .06 0"/></filter>
+</defs>`;
+function you(x, y, s) {
+  return `<g transform="translate(${x},${y}) scale(${s})"><path d="M-55,40 L-60,190 M55,40 L60,190" stroke="#05060a" stroke-width="44" stroke-linecap="round"/>
+    <path d="M-95,40 Q-110,-150 -70,-200 L70,-200 Q110,-150 95,40 Z" fill="#2a160c"/><path d="M85,-170 Q140,-100 120,0 M-85,-170 Q-140,-100 -120,0" stroke="#2a160c" stroke-width="40" fill="none" stroke-linecap="round"/>
+    <circle cx="0" cy="-330" r="135" fill="#05060a"/><path d="M-120,-400 A135,135 0 0 1 60,-460" stroke="#ffe9b8" stroke-width="10" fill="none" opacity=".8"/>
+    <circle cx="-48" cy="-330" r="30" fill="#fff"/><circle cx="48" cy="-330" r="30" fill="#fff"/><circle cx="-40" cy="-324" r="9" fill="#000"/><circle cx="56" cy="-324" r="9" fill="#000"/></g>`;
+}
+const head = (x, y, s, op) => `<g opacity="${op}"><rect x="${x - 34 * s}" y="${y - 380 * s}" width="${68 * s}" height="${380 * s}" fill="#05060a"/><ellipse cx="${x}" cy="${y - 418 * s}" rx="${30 * s}" ry="${40 * s}" fill="#cfd3dc" opacity=".7"/></g>`;
+
+// profile picture: one lamp, one cone of light, you in it; a pale head waiting at the edge of the dark
+let p = defs + `<rect width="800" height="800" fill="#07080d"/>`;
+p += `<rect x="360" y="70" width="80" height="12" fill="#fff6e0"/><line x1="400" y1="0" x2="400" y2="70" stroke="#2a3040" stroke-width="4"/>`;
+p += `<path d="M365,82 L435,82 L640,640 L160,640 Z" fill="url(#beam)"/><ellipse cx="400" cy="640" rx="300" ry="60" fill="url(#pool)"/>`;
+p += you(400, 615, 0.78);
+p += head(640, 690, 0.62, .55);
+p += `<rect width="800" height="800" fill="url(#vig)"/><rect width="800" height="800" filter="url(#grain)"/>`;
+document.getElementById('pfp').innerHTML = p;
+
+// banner: a row of lamps in the dark; the name on the left, you in the last pool of light on the right (inside the safe area)
+let b = defs + `<rect width="2560" height="1440" fill="#07080d"/>`;
+const G = 905;  // floor line, inside the safe band (y 508..931)
+b += `<rect x="0" y="${G}" width="2560" height="${1440 - G}" fill="#0a0c12"/><line x1="0" y1="${G}" x2="2560" y2="${G}" stroke="#2a3040" stroke-width="3"/>`;
+for (let x = 40; x < 2560; x += 180) b += `<rect x="${x}" y="560" width="130" height="${G - 560}" fill="#10131b" stroke="#232a38" stroke-width="2" opacity=".5"/>`;
+// lamps fading out from right to left: the light is running out
+const lamps = [[2300, .18], [2050, .3], [1500, .12], [1150, .08], [800, .05], [450, .03]];
+for (const [x, op] of lamps) b += `<g opacity="${op}"><rect x="${x - 40}" y="520" width="80" height="8" fill="#fff6e0"/><path d="M${x - 34},528 L${x + 34},528 L${x + 200},${G} L${x - 200},${G} Z" fill="url(#beam)"/></g>`;
+const LX = 1880;  // the last lamp still on
+b += `<rect x="${LX - 40}" y="520" width="80" height="10" fill="#fff6e0"/><path d="M${LX - 34},530 L${LX + 34},530 L${LX + 230},${G} L${LX - 230},${G} Z" fill="url(#beam)"/><ellipse cx="${LX}" cy="${G}" rx="300" ry="40" fill="url(#pool)"/>`;
+b += you(LX, G - 72, 0.36);
+b += head(LX + 330, G + 10, 0.42, .55) + head(LX - 380, G + 10, 0.4, .35) + head(1250, G + 10, 0.36, .2);
+b += `<text x="560" y="735" font-family="Inter" font-weight="200" font-size="128" fill="#eef2fa" letter-spacing="36">${NAME}</text>`;
+b += `<text x="566" y="805" font-family="Inter" font-weight="300" font-size="34" fill="#cfd6e6" opacity=".7" letter-spacing="12">WHAT HAPPENS WHEN THE LIGHTS GO OUT</text>`;
+b += `<rect width="2560" height="1440" fill="url(#vig)" opacity=".6"/><rect width="2560" height="1440" filter="url(#grain)"/>`;
+document.getElementById('banner').innerHTML = b;
+</script></body></html>

@@ -1,0 +1,282 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+html, body { margin: 0; background: #000; overflow: hidden; }
+svg { display: block; }
+</style></head><body>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// "SCP-3008" in the minimal cinematic style. draw(t) renders one frame from the timeline TL:
+// TL.lines[id] = {start, end, words: [[word, start, end]]} (absolute seconds), TL.end, TL.channel.
+const W = 1080, H = 1920;
+let TL = null;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = k => { k = clamp(k); return k * k * (3 - 2 * k); };
+const lerp = (a, b, k) => a + (b - a) * k;
+const ln = id => TL.lines[id];
+const wordAt = (id, i) => ln(id).words[Math.min(i, ln(id).words.length - 1)];
+const wordT = (id, re) => { const w = ln(id).words.find(w => re.test(w[0])); return w ? w[1] : ln(id).end; };
+function rnd(i) { const x = Math.sin(i * 127.1) * 43758.5453; return x - Math.floor(x); }
+
+const DEFS = t => `<defs>
+  <radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe9b8" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/></radialGradient>
+  <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3d6" stop-opacity=".38"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/></linearGradient>
+  <radialGradient id="candle" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb35a" stop-opacity=".75"/><stop offset=".4" stop-color="#ff8a2a" stop-opacity=".25"/><stop offset="1" stop-color="#ff8a2a" stop-opacity="0"/></radialGradient>
+  <radialGradient id="door" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffe9b8" stop-opacity=".5"/><stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/></radialGradient>
+  <linearGradient id="night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#04060b"/><stop offset=".6" stop-color="#121a2c"/><stop offset="1" stop-color="#0a0d14"/></linearGradient>
+  <radialGradient id="vig" cx=".5" cy=".5" r=".72"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".85"/></radialGradient>
+  <filter id="grain"><feTurbulence baseFrequency=".9" seed="${Math.floor(t * 24)}"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .07 0"/></filter>
+  <filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>`;
+
+// ---------------------------------------------------------------- building blocks
+// the endless aisle; light(i) gives lamp i's brightness (0..1), i = 0 nearest
+function aisle({ light, VX = 540, VY = 900, n = 10, warm = 0 }) {
+  const P = (x, y, k) => [VX + (x - VX) * k, VY + (y - VY) * k];
+  let s = '';
+  const shelf = warm ? '#1e1a16' : '#11141c', rim = warm ? '#4a3a28' : '#2a3040';
+  for (const side of [-1, 1]) for (let k = 1, i = 0; i < n; i++, k *= 0.78) {
+    const k2 = k * 0.78, xo = VX + side * 560, q = (x, y, kk) => P(x, y, kk).join(',');
+    s += `<polygon points="${q(xo, 1650, k)} ${q(xo, 450, k)} ${q(xo, 450, k2)} ${q(xo, 1650, k2)}" fill="${shelf}" stroke="${rim}" stroke-width="${2 * k + .5}"/>`;
+    for (const y of [760, 1060, 1360]) s += `<line x1="${P(xo, y, k)[0]}" y1="${P(xo, y, k)[1]}" x2="${P(xo, y, k2)[0]}" y2="${P(xo, y, k2)[1]}" stroke="${rim}" stroke-width="${1.5 * k + .3}" opacity=".7"/>`;
+  }
+  const ks = []; for (let k = 0.95; k > 0.06; k *= 0.78) ks.push(k);
+  ks.forEach((k, i) => {
+    const b = clamp(light(i));
+    const [lx, ly] = P(VX, 330, k), [, fy] = P(VX, 1650, k);
+    s += `<rect x="${lx - 46 * k}" y="${ly}" width="${92 * k}" height="${10 * k}" fill="${b > .05 ? '#fff6e0' : '#1c2030'}" opacity="${.3 + .7 * b}"/>`;
+    if (b > 0.01) s += `<g opacity="${b}"><path d="M${lx - 40 * k},${ly + 10 * k} L${lx + 40 * k},${ly + 10 * k} L${lx + 260 * k},${fy} L${lx - 260 * k},${fy} Z" fill="url(#beam)"/><ellipse cx="${lx}" cy="${fy}" rx="${320 * k}" ry="${60 * k}" fill="url(#pool)"/></g>`;
+  });
+  return { svg: s, P, nLamps: ks.length };
+}
+
+// you: a small silhouette (the D-class from the samples, reduced to a shape)
+function you(x, y, s, o = {}) {
+  const bob = o.walk ? Math.abs(Math.sin(o.walk * 7)) * 10 : 0, sit = o.sit;
+  let c = '';
+  if (!sit) c += `<path d="M-55,40 L-60,190 M55,40 L60,190" stroke="#05060a" stroke-width="44" stroke-linecap="round" transform="${o.walk ? `rotate(${Math.sin(o.walk * 7) * 6})` : ''}"/>`;
+  else c += `<path d="M-55,40 L-150,60 L-150,190 M55,40 L-40,60 L-40,190" stroke="#05060a" stroke-width="44" stroke-linecap="round" fill="none"/>`;
+  c += `<path d="M-95,40 Q-110,-150 -70,-200 L70,-200 Q110,-150 95,40 Z" fill="#2a160c"/>`;
+  c += `<path d="M85,-170 Q140,-100 120,0 M-85,-170 Q-140,-100 -120,0" stroke="#2a160c" stroke-width="40" fill="none" stroke-linecap="round"/>`;
+  c += `<circle cx="0" cy="-330" r="135" fill="#05060a"/>`;
+  if (o.eyes) c += `<circle cx="-48" cy="-330" r="30" fill="#fff"/><circle cx="48" cy="-330" r="30" fill="#fff"/><circle cx="${-48 + (o.look || 0) * 10}" cy="-324" r="9" fill="#000"/><circle cx="${48 + (o.look || 0) * 10}" cy="-324" r="9" fill="#000"/>`;
+  if (o.rim) c += `<path d="M-120,-400 A135,135 0 0 1 60,-460" stroke="${o.rim}" stroke-width="10" fill="none" opacity=".8"/>`;
+  return `<g transform="translate(${x},${y - bob * s}) scale(${s})">${c}</g>`;
+}
+
+// the staff: tall, thin, dark, with a pale faceless head
+function staff(x, y, s, op = 1, facing = 1) {
+  return `<g transform="translate(${x},${y}) scale(${s * facing},${s})" opacity="${op}">
+    <rect x="-34" y="-380" width="68" height="300" rx="10" fill="#05060a"/><path d="M-20,-80 L-24,0 M20,-80 L24,0" stroke="#05060a" stroke-width="22" stroke-linecap="round"/>
+    <path d="M-34,-360 L-60,-160 M34,-360 L60,-160" stroke="#05060a" stroke-width="18" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-418" rx="30" ry="40" fill="#cfd3dc" opacity=".8"/></g>`;
+}
+
+// thin, wide-tracked type
+const T = (txt, x, y, z, op = 1, w = 200, ls = 6, anchor = 'start', fill = '#e8ecf5') =>
+  `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="Inter" font-weight="${w}" font-size="${z}" fill="${fill}" opacity="${op}" letter-spacing="${ls}">${txt}</text>`;
+const hhmmss = s => [Math.floor(s / 3600), Math.floor(s / 60) % 60, Math.floor(s) % 60].map(v => String(v).padStart(2, '0')).join(':');
+
+function caption(t) {
+  for (const id in TL.lines) {
+    const ws = ln(id).words; const chunks = []; let cur = [];
+    ws.forEach((w, i) => { cur.push(w); if (cur.length === 3 || /[.!?,]$/.test(w[0]) || i === ws.length - 1) { chunks.push(cur); cur = []; } });
+    for (let i = 0; i < chunks.length; i++) {
+      const a = chunks[i][0][1], b = i + 1 < chunks.length ? chunks[i + 1][0][1] : chunks[i][chunks[i].length - 1][2] + 0.35;
+      if (a <= t && t < b) {
+        const txt = chunks[i].map(w => w[0]).join(' ');
+        return `<text x="540" y="1700" text-anchor="middle" font-family="Inter" font-weight="400" font-size="64" fill="#000" opacity=".6" filter="url(#soft)">${txt}</text>
+          <text x="540" y="1700" text-anchor="middle" font-family="Inter" font-weight="400" font-size="64" fill="#fff" letter-spacing="1">${txt}</text>`;
+      }
+    }
+  }
+  return '';
+}
+
+// ---------------------------------------------------------------- scenes
+function sceneHook(t) {  // 01: lit aisle, then the lamps die far-to-near
+  let h = '';
+  const off = wordT('01', /out/i), A = aisle({ light: i => t < off + (A0 - 1 - i) * 0.07 ? 1 : 0 });
+  return { body: A.svg, push: 1 + 0.08 * ease((t - ln('01').start) / 4), cy: 1200 };
+}
+let A0 = 12;  // lamp count, set at init
+
+function sceneOutside(t) {  // 02a: the store at night; you walk to the doors
+  let h = '';
+  const k = clamp((t - ln('02').start) / (wordT('02', /Inside/i) - ln('02').start));
+  let s = `<rect width="${W}" height="${H}" fill="url(#night)"/>`;
+  for (let i = 0; i < 40; i++) s += `<circle cx="${rnd(i) * W}" cy="${rnd(i + 99) * 600}" r="${rnd(i + 7) * 2 + .5}" fill="#dfe6ff" opacity="${.3 + .5 * rnd(i + 3)}"/>`;
+  s += `<rect x="60" y="760" width="960" height="430" fill="#141824"/><rect x="60" y="760" width="960" height="18" fill="#232a3c"/>`;
+  s += `<rect x="330" y="800" width="420" height="70" rx="6" fill="#ffd36a" opacity=".85"/><rect x="345" y="812" width="390" height="46" rx="4" fill="#ffe7a8" opacity=".6"/>`;
+  s += `<rect x="400" y="960" width="280" height="230" fill="#ffe9b8"/><line x1="540" y1="960" x2="540" y2="1190" stroke="#c9b48a" stroke-width="4"/>`;
+  s += `<path d="M400,1190 L680,1190 L1000,1700 L80,1700 Z" fill="url(#door)"/>`;
+  s += `<rect x="0" y="1190" width="${W}" height="${H - 1190}" fill="#0b0e16" opacity=".85"/>`;
+  for (let i = -5; i <= 5; i++) s += `<line x1="${540 + i * 40}" y1="1200" x2="${540 + i * 260}" y2="1920" stroke="#2a3248" stroke-width="3"/>`;
+  s += `<path d="M400,1190 L680,1190 L1000,1700 L80,1700 Z" fill="url(#door)" opacity=".7"/>`;
+  for (const x of [120, 960]) s += `<rect x="${x - 4}" y="900" width="8" height="300" fill="#1c2232"/><ellipse cx="${x}" cy="900" rx="30" ry="8" fill="#ffe9b8" opacity=".5"/>`;
+  const yy = lerp(1720, 1210, ease(k)), sc = lerp(0.42, 0.12, ease(k));
+  s += you(540, yy, sc, { walk: t, rim: '#ffe9b8' });
+  h += T('SCP-3008', 80, 190, 40, .85, 300, 14) + T('OBJECT CLASS   EUCLID', 80, 240, 30, .55, 200, 10);
+  return { hud: h, body: s, push: 1 + 0.12 * ease(k), cy: 1080 };
+}
+
+function sceneNeverEnds(t) {  // 02b: flying down the aisle, numbers racing
+  let h = '';
+  const t0 = wordT('02', /Inside/i), k = t - t0;
+  const fly = (k * 1.6) % 1;
+  const A = aisle({ light: () => 1, VY: 900 });
+  let s = `<g transform="translate(540,900) scale(${1 + fly * 0.28}) translate(-540,-900)">${A.svg}</g>`;
+  h += T(`AISLE   ${(4812 + Math.floor(k * 937)).toLocaleString('en-US')}`, 80, 330, 44, .9, 200, 8);
+  h += T('EXITS FOUND   0', 80, 395, 36, .6, 200, 6);
+  return { hud: h, body: s, push: 1, cy: 1200 };
+}
+
+function sceneLost(t) {  // 03: you walk away from camera; time inside races to 40 min; entrance gone
+  let h = '';
+  const L0 = ln('03').start, k = clamp((t - L0) / (ln('03').end - L0));
+  const A = aisle({ light: () => 1 });
+  let s = A.svg + you(540, lerp(1640, 1340, k), lerp(0.36, 0.22, k), { walk: t });
+  h += T(`TIME INSIDE   ${hhmmss(40 * 60 * ease(k * 1.15))}`, 80, 330, 40, .9, 200, 8);
+  h += T('ENTRANCE   ' + (t >= wordT('03', /gone/i) ? 'NOT FOUND' : 'BEHIND YOU'), 80, 395, 36, t >= wordT('03', /gone/i) ? (Math.floor(t * 3) % 2 ? 1 : .45) : .6, 300, 6, 'start', t >= wordT('03', /gone/i) ? '#ff8080' : '#e8ecf5');
+  return { hud: h, body: s, push: 1 + 0.05 * k, cy: 1300 };
+}
+
+function sceneDayOne(t) {  // 04: a warm pool of light, a bed, a plate; you sit
+  let h = '';
+  const k = clamp((t - ln('04').start) / 4);
+  let s = `<rect width="${W}" height="${H}" fill="#0d0b0a"/>`;
+  s += `<ellipse cx="540" cy="1330" rx="520" ry="150" fill="url(#pool)"/><path d="M500,300 L580,300 L900,1330 L180,1330 Z" fill="url(#beam)" opacity=".8"/>`;
+  s += `<rect x="490" y="290" width="100" height="12" fill="#fff6e0"/>`;
+  s += `<rect x="250" y="1150" width="560" height="120" rx="14" fill="#2b2420"/><rect x="250" y="1120" width="560" height="50" rx="14" fill="#e9dcc5" opacity=".85"/><rect x="270" y="1095" width="150" height="50" rx="20" fill="#f5ecdc"/>`;
+  s += `<rect x="250" y="1050" width="24" height="230" fill="#2b2420"/><rect x="786" y="1050" width="24" height="230" fill="#2b2420"/>`;
+  s += `<rect x="840" y="1180" width="140" height="100" fill="#2b2420"/><ellipse cx="910" cy="1172" rx="56" ry="13" fill="#e9dcc5"/>`;
+  for (let i = 0; i < 6; i++) s += `<circle cx="${888 + (i % 3) * 18}" cy="${1162 - Math.floor(i / 3) * 10}" r="9" fill="#7a4a2a"/>`;
+  for (let i = 0; i < 3; i++) s += `<path d="M${890 + i * 18},1140 q-10,-${30 + 6 * Math.sin(t * 3 + i)} 6,-${60}" stroke="#fff" stroke-width="3" fill="none" opacity="${.18 + .1 * Math.sin(t * 4 + i)}"/>`;  // steam
+  s += you(600, 1280, 0.42, { sit: true, rim: '#ffd9a0' });
+  h += T('DAY 1', 540, 470, 64, .9 * ease(k * 3), 200, 22, 'middle');
+  return { hud: h, body: s, push: 1 + 0.06 * k, cy: 1200 };
+}
+
+function sceneStaff(t) {  // 05: a lone lamp far away; a staff member under it
+  let h = '';
+  const L0 = ln('05').start, k = clamp((t - L0) / (ln('05').end - L0 + 0.3));
+  const A = aisle({ light: i => (i === 4 ? 1 : 0.12) });
+  const [hx, hy] = A.P(540, 1650, 0.95 * Math.pow(0.78, 4));
+  let s = A.svg + staff(hx, hy, 0.42);
+  const noFaces = t >= wordT('05', /faces/i);
+  return { hud: h, body: s, push: lerp(1, noFaces ? 2.1 : 1.5, ease(k)), cy: hy - 120 };
+}
+
+function sceneIgnore(t) {  // 06: you creep past two staff; they never turn
+  let h = '';
+  const L0 = ln('06').start, k = clamp((t - L0) / (ln('06').end - L0 + 0.4));
+  const A = aisle({ light: () => 0.9 });
+  let s = A.svg + staff(330, 1560, 0.95, 1, 1) + staff(780, 1500, 0.85, 1, -1);
+  s += you(lerp(180, 900, k), 1640, 0.3, { walk: t, eyes: true, look: k > .5 ? -1 : 1 });
+  return { hud: h, body: s, push: 1.02, cy: 1300 };
+}
+
+function sceneLightsOut(t) {  // 07 + 08: the clock hits 22:00; lamps die; pale heads come closer
+  let h = '';
+  const L0 = ln('07').start, off = wordT('07', /out/i), A = aisle({ light: i => t < off + (A0 - 1 - i) * 0.07 ? 1 : 0 });
+  let s = A.svg;
+  if (t >= ln('08').start - 0.3) {
+    const a = clamp((t - ln('08').start + 0.3) / 1.0), near = ease((t - ln('08').start) / 2.5);
+    for (const [x, k] of [[420, .55], [650, .5], [520, .35], [300, .7], [790, .66]]) {
+      const kk = k + near * 0.35, [hx, hy] = A.P(x, 1650, kk);
+      s += `<g opacity="${a * .9}"><rect x="${hx - 34 * kk}" y="${hy - 380 * kk}" width="${68 * kk}" height="${380 * kk}" fill="#05060a"/><ellipse cx="${hx}" cy="${hy - 410 * kk}" rx="${30 * kk}" ry="${38 * kk}" fill="#cfd3dc" opacity=".75"/></g>`;
+    }
+  }
+  s += you(540, 1650, 0.3, { eyes: t >= off, look: 0 });
+  const clock = t < off ? `21:59:${String(Math.min(59, 50 + Math.floor((t - L0) / (off - L0) * 10))).padStart(2, '0')}` : '22:00:00';
+  h += T(clock, 540, 420, 96, .95, 100, 10, 'middle');
+  if (t >= off) h += T('LIGHTS   OFF', 540, 490, 34, Math.floor(t * 3) % 2 ? 1 : .4, 300, 10, 'middle');
+  return { hud: h, body: s, push: 1 + 0.08 * ease((t - L0) / 6), cy: 1250 };
+}
+
+function fortBase(t, flick) {
+  let s = `<rect width="${W}" height="${H}" fill="#050508"/>`;
+  s += `<ellipse cx="540" cy="1330" rx="${430 + flick * 20}" ry="${300 + flick * 14}" fill="url(#candle)"/>`;
+  s += `<path d="M140,1460 L140,980 L330,930 L330,1400 Z" fill="#14100e" stroke="#3a2a1c" stroke-width="3"/>`;
+  s += `<path d="M940,1460 L940,980 L750,930 L750,1400 Z" fill="#14100e" stroke="#3a2a1c" stroke-width="3"/>`;
+  s += `<rect x="300" y="960" width="480" height="360" fill="#100c0a" stroke="#3a2a1c" stroke-width="3"/>`;
+  for (const y of [1060, 1170]) s += `<line x1="300" y1="${y}" x2="780" y2="${y}" stroke="#3a2a1c" stroke-width="3"/>`;
+  s += `<rect x="530" y="1400" width="20" height="40" fill="#e9dcc5"/><ellipse cx="540" cy="${1388 - flick * 4}" rx="9" ry="${18 + flick * 4}" fill="#ffcf6a"/>`;
+  s += you(470, 1460, 0.4, { sit: true, rim: '#ffb35a', eyes: true, look: 1 });
+  return s;
+}
+
+function sceneFort(t) {  // 09: a fort of shelves, a candle
+  let h = '';
+  const k = clamp((t - ln('09').start) / 4), flick = Math.sin(t * 17) * .5 + Math.sin(t * 7.3) * .5;
+  let s = fortBase(t, flick); h += T('22:47', 540, 420, 80, .85, 100, 10, 'middle');
+  return { hud: h, body: s, push: 1 + 0.05 * k, cy: 1250 };
+}
+
+function sceneSteps(t) {  // 10: footsteps; the distance counter drops; a pale head rises over the wall
+  let h = '';
+  const L0 = ln('10').start, k = clamp((t - L0) / (ln('11').start - L0)), flick = Math.sin(t * 23) * .7;
+  let s = fortBase(t, flick);
+  const rise = ease((k - 0.55) / 0.4);
+  s += `<g opacity="${rise}"><ellipse cx="660" cy="${960 - 60 * rise}" rx="44" ry="58" fill="#cfd3dc" opacity=".85"/></g>`;
+  s += `<rect x="290" y="955" width="500" height="10" fill="#100c0a"/>`;
+  h += T('03:12', 540, 420, 80, .85, 100, 10, 'middle');
+  h += T(`STAFF DISTANCE   ${Math.max(2, Math.round(40 - 38 * ease(k)))} m`, 540, 490, 36, .9, 300, 6, 'middle', '#ff8080');
+  const sh = 6 * Math.sin(t * 50) * ease(k);
+  return { hud: h, body: s, push: 1 + 0.12 * ease(k), cy: 1150, shake: sh };
+}
+
+function sceneMorning(t) {  // 11 + 12: the lights slam on; the head is gone; DAY 2; the aisle number has changed
+  let h = '';
+  const on = wordT('11', /back/i), b = ease((t - on) / 0.15);
+  const A = aisle({ light: () => b, warm: 1 });
+  let s = `<rect width="${W}" height="${H}" fill="#0c0a08"/>` + A.svg;
+  if (b > 0) s += `<rect width="${W}" height="${H}" fill="#fff6e0" opacity="${0.6 * Math.exp(-(t - on) * 5)}"/>`;
+  s += you(540, 1650, 0.32, { eyes: true, look: Math.sin(t * 1.5) });
+  if (t >= ln('12').start) h += T('DAY 2', 540, 420, 64, .9, 200, 22, 'middle');
+  const moved = wordT('12', /moved/i);
+  if (t >= moved) {
+    const a = ease((t - moved) / 0.4);
+    h += T('AISLE   4,812', 80, 230, 34, .5 * a, 200, 8) + `<line x1="76" y1="219" x2="380" y2="219" stroke="#ff8080" stroke-width="3" opacity="${a}"/>`;
+    h += T('AISLE   9,104', 80, 290, 40, a, 300, 8, 'start', '#ff8080');
+  }
+  return { hud: h, body: s, push: 1 + 0.06 * ease((t - on) / 6), cy: 1250 };
+}
+
+function endCard(t) {
+  const a = ease((t - (ln('12').end + 0.8)) / 0.6);
+  let s = `<rect width="${W}" height="${H}" fill="#050608" opacity="${a}"/><g opacity="${a}">`;
+  s += `<rect x="514" y="760" width="52" height="8" fill="#fff6e0"/><path d="M520,768 L560,768 L700,1060 L380,1060 Z" fill="url(#beam)"/><ellipse cx="540" cy="1060" rx="200" ry="34" fill="url(#pool)"/>`;
+  s += T(TL.channel, 540, 1180, 72, 1, 200, 30, 'middle');
+  s += T('Based on SCP-3008', 540, 1640, 26, .6, 300, 2, 'middle');
+  s += T('Original story by Mortos  ·  scp-wiki.wikidot.com/scp-3008', 540, 1685, 26, .6, 300, 2, 'middle');
+  s += T('Licensed CC BY-SA 3.0', 540, 1730, 26, .6, 300, 2, 'middle') + '</g>';
+  return s;
+}
+
+function scene(t) {
+  if (t < ln('02').start) return sceneHook(t);
+  if (t < wordT('02', /Inside/i)) return sceneOutside(t);
+  if (t < ln('03').start) return sceneNeverEnds(t);
+  if (t < ln('04').start) return sceneLost(t);
+  if (t < ln('05').start) return sceneDayOne(t);
+  if (t < ln('06').start) return sceneStaff(t);
+  if (t < ln('07').start) return sceneIgnore(t);
+  if (t < ln('09').start) return sceneLightsOut(t);
+  if (t < ln('10').start) return sceneFort(t);
+  if (t < wordT('11', /back/i)) return sceneSteps(t);
+  return sceneMorning(t);
+}
+
+function draw(t) {
+  if (A0 === 12) A0 = aisle({ light: () => 1 }).nLamps;
+  const sc = scene(t), sh = sc.shake || 0;
+  let g = DEFS(t) + `<rect width="${W}" height="${H}" fill="#0a0c12"/>`;
+  g += `<g transform="translate(${540 + sh},${sc.cy}) scale(${sc.push}) translate(-540,${-sc.cy})">${sc.body}</g>`;
+  g += `<rect width="${W}" height="${H}" fill="url(#vig)"/><rect width="${W}" height="${H}" filter="url(#grain)"/>`;
+  g += sc.hud || '';
+  g += caption(t);
+  if (t > ln('12').end + 0.8) g += endCard(t);
+  document.getElementById('c').innerHTML = g;
+}
+</script></body></html>
