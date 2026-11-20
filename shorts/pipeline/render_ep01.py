@@ -94,28 +94,37 @@ def word_start(timings, line_id, i):
     return timings[line_id]["words"][i]["start"]
 
 
-def build_timeline(audio, timings, fall, t_fall_land):
+def build_timeline(audio, timings, fall, t_fall_land, tight=False):
+    """tight=True: the Shorts re-cut. Pauses are halved, the village intro and walk-ins are shorter, and the
+    ending runs straight from "I had him!" to the narrator (leave 10_mark out of `audio` to drop it)."""
     d = {i: len(a) / SR for i, a in audio.items()}
-    T = {"01_narrator": 0.5, "walk": 1.0, "dash": 1.8, "reg_run": 2.1}
+    k = 0.5 if tight else 1.0  # scale for the pauses between beats
+
+    def gap(x):
+        return x * k
+
+    T = {"01_narrator": 0.15, "walk": 0.25, "dash": 0.75, "reg_run": 1.0} if tight else \
+        {"01_narrator": 0.5, "walk": 1.0, "dash": 1.8, "reg_run": 2.1}
     trip = Trip(MARK_START, MARK_STOP, T["walk"], T["dash"])
     T["arrive"] = trip.t_stop
-    T["reveal"] = T["arrive"] + 0.45
-    T["02_grub"] = T["reveal"] + 0.75
-    T["03_reginald"] = T["02_grub"] + d["02_grub"] + 0.35
-    T["climb"] = T["03_reginald"] + d["03_reginald"] + 0.25
-    T["hops"] = [T["climb"] + 0.45 + 0.28 * i for i in range(4)]
-    T["slide"] = T["hops"][-1] + 0.55
+    T["reveal"] = T["arrive"] + gap(0.45)
+    T["02_grub"] = T["reveal"] + (0.45 if tight else 0.75)
+    T["03_reginald"] = T["02_grub"] + d["02_grub"] + gap(0.35)
+    T["climb"] = T["03_reginald"] + d["03_reginald"] + gap(0.25)
+    hop = 0.22 if tight else 0.28
+    T["hops"] = [T["climb"] + (0.35 if tight else 0.45) + hop * i for i in range(4)]
+    T["slide"] = T["hops"][-1] + (0.4 if tight else 0.55)
     T["back"] = T["slide"] + 0.25  # lands on his back
-    T["getup"] = T["back"] + 0.9
-    T["wiz_enter"] = T["back"] - 0.3
-    T["wiz_stop"] = T["wiz_enter"] + 1.6
-    T["04_bumblewick"] = T["wiz_stop"] + 0.1
-    T["spell"] = T["04_bumblewick"] + d["04_bumblewick"] + 0.1
-    T["05_reginald"] = T["spell"] + 1.1
-    T["06_mark"] = T["05_reginald"] + d["05_reginald"] + 0.35
+    T["getup"] = T["back"] + (0.6 if tight else 0.9)
+    T["wiz_enter"] = T["back"] - (0.4 if tight else 0.3)
+    T["wiz_stop"] = T["wiz_enter"] + (0.9 if tight else 1.6)
+    T["04_bumblewick"] = T["wiz_stop"] + gap(0.1)
+    T["spell"] = T["04_bumblewick"] + d["04_bumblewick"] + gap(0.1)
+    T["05_reginald"] = T["spell"] + (0.9 if tight else 1.1)
+    T["06_mark"] = T["05_reginald"] + d["05_reginald"] + gap(0.35)
     T["slash"] = T["06_mark"] + d["06_mark"] + 0.1
     T["chop"] = T["slash"] + 0.32
-    T["fall"] = T["chop"] + 0.5
+    T["fall"] = T["chop"] + gap(0.5)
     t45 = next(t for t, a in fall if a >= 45)
     T["release"] = T["fall"] + t45
     T["07_grub"] = T["release"] - word_start(timings, "07_grub", 0)  # screams as he's flung
@@ -123,15 +132,15 @@ def build_timeline(audio, timings, fall, t_fall_land):
     T["07b_grub"] = T["grub_land"] - word_start(timings, "07b_grub", 0)  # "OW!" as he lands
     T["tree_land"] = T["fall"] + t_fall_land
     T["catch"] = T["release"] + 1.0
-    T["08_mark"] = max(T["07b_grub"] + d["07b_grub"], T["catch"]) + 0.35
-    T["drop"] = T["08_mark"] + d["08_mark"] + 0.3
+    T["08_mark"] = max(T["07b_grub"] + d["07b_grub"], T["catch"]) + gap(0.35)
+    T["drop"] = T["08_mark"] + d["08_mark"] + gap(0.3)
     T["drop_land"] = T["drop"] + math.sqrt(2 * FLOAT_H / G)
-    T["09_reginald"] = T["drop_land"] + 0.3
-    T["leave"] = T["09_reginald"] + d["09_reginald"] + 0.3
+    T["09_reginald"] = T["drop_land"] + gap(0.3)
+    T["leave"] = T["09_reginald"] + d["09_reginald"] + gap(0.3)
     T["10_mark"] = T["leave"] + 0.15
-    T["11_narrator"] = T["10_mark"] + d["10_mark"] + 0.45
+    T["11_narrator"] = (T["10_mark"] + d["10_mark"] + 0.45) if "10_mark" in d else T["leave"] + 0.25
     T["complete"] = T["11_narrator"] + d["11_narrator"] - 0.2
-    T["end"] = T["complete"] + 2.4
+    T["end"] = T["complete"] + (1.5 if tight else 2.4)
     # the moment the dash kicks in (for the whoosh and the dust burst)
     T["kick"] = next(T["walk"] + i * trip.dt for i, s in enumerate(trip.samples) if s[2] > 60)
     T["skid"] = trip.t_skid
@@ -180,6 +189,8 @@ def mix_audio(T, audio, audio_dir, out_wav):
 def build_captions(T, d, words):
     caps = []
     for line in SCRIPT["lines"]:
+        if line["id"] not in words:
+            continue
         chunks = caption_chunks(line, words[line["id"]])
         for k, ch in enumerate(chunks):
             end = chunks[k + 1][0][1] if k + 1 < len(chunks) else T[line["id"]] + d[line["id"]] + 0.25
