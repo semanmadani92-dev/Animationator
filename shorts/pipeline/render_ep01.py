@@ -40,7 +40,7 @@ G = 400.0  # gravity, px/s^2
 
 # world positions
 MARK_START, MARK_STOP, MARK_CHOP = 70, 300, 316
-REG_START, REG_STOP, REG_TREE, REG_FLOAT = 46, 282, 326, 320
+REG_START, REG_STOP, REG_TREE, REG_FLOAT = 46, 282, 326, 292
 WIZ_VILLAGE, WIZ_FROM, WIZ_X = 24, 212, 262
 TREE_X = 336
 PIVOT = (TREE_X, GROUND + 1 - CUT)  # where the trunk is cut
@@ -484,11 +484,11 @@ class Episode:
         if t < T["slide"]:  # hauls himself up, a few px per clank
             n = sum(1 for h in T["hops"] if t >= h)
             spr = front("reginald", "shout")
-            cv.put(spr if n % 2 else flip(spr), REG_TREE, GROUND - 1 - 5 * n)
+            cv.put(spr if n % 2 else flip(spr), REG_TREE, GROUND - 1 - 7 * n)
             return
         if t < T["back"]:  # slides down
             k = (t - T["slide"]) / (T["back"] - T["slide"])
-            cv.put(front("reginald", "shocked"), REG_TREE, GROUND - 1 - 20 * (1 - k * k))
+            cv.put(front("reginald", "shocked"), REG_TREE, GROUND - 1 - 28 * (1 - k * k))
             return
         if t < T["getup"]:  # flat on his back
             cv.put(front("reginald", "shocked").rotate(90, expand=True), REG_TREE - 4, GROUND - 1)
