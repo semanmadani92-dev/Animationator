@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "pixel"))
 sys.path.insert(0, str(ROOT / "pipeline"))
-import render_ep01 as ep  # noqa: E402
+import render_bridge as ep  # noqa: E402
 from chiptune import chiptune  # noqa: E402
 from level import GROUND, build_level, compose_view  # noqa: E402
 from run_options import DASH, foot_speed  # noqa: E402

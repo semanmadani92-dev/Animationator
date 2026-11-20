@@ -114,7 +114,11 @@ def _sign(d, x, base):
     d.polygon([(x + 9, base - 22), (x + 13, base - 19), (x + 9, base - 16)], fill="#3a2414")
 
 
-def _ground(rnd):
+FOREST = ((280, 58), (318, 74), (352, 52), (388, 66), (420, 46))
+BUSHES = (300, 340, 372, 405)
+
+
+def _ground(rnd, forest=FOREST, bushes=BUSHES):
     img = Image.new("RGBA", (WORLD_W, WORLD_H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     px = img.load()
@@ -157,9 +161,9 @@ def _ground(rnd):
         d.rectangle([fx, GROUND - 7, fx + 1, GROUND], fill="#a8743e")
     d.line([232, GROUND - 5, 262, GROUND - 5], fill="#7a4e26")
     # forest path
-    for tx, th in ((280, 58), (318, 74), (352, 52), (388, 66), (420, 46)):
+    for tx, th in forest:
         _tree(d, tx, GROUND, th, rnd)
-    for bx in (300, 340, 372, 405):
+    for bx in bushes:
         d.ellipse([bx - 7, GROUND - 7, bx + 7, GROUND + 2], fill="#4f9a48", outline="#24502a")
     _sign(d, 428, GROUND)
     # far side: dead trees and the castle
@@ -174,9 +178,10 @@ def _ground(rnd):
     return img
 
 
-def build_level(seed=11):
+def build_level(seed=11, forest=FOREST, bushes=BUSHES):
+    """forest: (x, height) of the background trees; leave a gap where an episode puts its own prop tree."""
     rnd = random.Random(seed)
-    return {"sky": _sky(), "mountains": _mountains(rnd), "hills": _hills(rnd), "ground": _ground(rnd)}
+    return {"sky": _sky(), "mountains": _mountains(rnd), "hills": _hills(rnd), "ground": _ground(rnd, forest, bushes)}
 
 
 def compose_view(layers, cam_x, cam_y, vw, vh):

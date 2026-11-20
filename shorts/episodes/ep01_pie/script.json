@@ -1,0 +1,141 @@
+{
+  "title": "The Pie",
+  "fps": 24,
+  "_about": "Episode 1. Grub (Vexmore's goblin) steals the baker's pie and hides up a tree. Reginald and Bumblewick make it dramatic; Mark cuts the tree. Vexmore is only mentioned: he is saved for the finale (ep_bridge).",
+  "lines": [
+    {
+      "id": "01_narrator",
+      "speaker": "narrator",
+      "text": "Quest one! A sneaky goblin stole the baker's pie!",
+      "keywords": [
+        "one",
+        "goblin",
+        "pie"
+      ]
+    },
+    {
+      "id": "02_grub",
+      "speaker": "grub",
+      "text": "Hehehe! This pie is for Lord Vexmore! You'll never get me down from here!",
+      "keywords": [
+        "Hehehe",
+        "pie",
+        "Vexmore",
+        "never"
+      ]
+    },
+    {
+      "id": "03_reginald",
+      "speaker": "reginald",
+      "text": "Fear not! No tree is too tall for Sir Reginald!",
+      "keywords": [
+        "Fear",
+        "tree",
+        "tall",
+        "Reginald"
+      ]
+    },
+    {
+      "id": "04_bumblewick",
+      "speaker": "bumblewick",
+      "text": "Stand back... I shall cast... a levitation spell!",
+      "keywords": [
+        "back",
+        "levitation",
+        "spell"
+      ]
+    },
+    {
+      "id": "05_reginald",
+      "speaker": "reginald",
+      "text": "Wizard! Put me down at once!",
+      "keywords": [
+        "Wizard",
+        "down",
+        "once"
+      ]
+    },
+    {
+      "id": "06_mark",
+      "speaker": "mark",
+      "text": "Or... I could just do this.",
+      "keywords": [
+        "Or",
+        "this"
+      ],
+      "keep": [
+        [
+          0.0,
+          0.85
+        ],
+        [
+          1.6,
+          4.1
+        ]
+      ]
+    },
+    {
+      "id": "07_grub",
+      "speaker": "grub",
+      "text": "Waaaaaaah!",
+      "keywords": [
+        "Waaaaaaah"
+      ]
+    },
+    {
+      "id": "07b_grub",
+      "speaker": "grub",
+      "text": "OW! That's cheating!",
+      "keywords": [
+        "OW",
+        "cheating"
+      ]
+    },
+    {
+      "id": "08_mark",
+      "speaker": "mark",
+      "text": "It's a tree.",
+      "keywords": [
+        "tree"
+      ]
+    },
+    {
+      "id": "09_reginald",
+      "speaker": "reginald",
+      "text": "I had him!",
+      "keywords": [
+        "had",
+        "him"
+      ]
+    },
+    {
+      "id": "10_mark",
+      "speaker": "mark",
+      "text": "Pie's back. Let's go home.",
+      "keywords": [
+        "back",
+        "home"
+      ],
+      "keep": [
+        [
+          0.85,
+          1.9
+        ],
+        [
+          2.35,
+          3.7
+        ]
+      ]
+    },
+    {
+      "id": "11_narrator",
+      "speaker": "narrator",
+      "text": "Quest complete... the tree did not survive.",
+      "keywords": [
+        "complete",
+        "tree",
+        "survive"
+      ]
+    }
+  ]
+}
