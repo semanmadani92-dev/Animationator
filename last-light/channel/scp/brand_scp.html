@@ -1,0 +1,65 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000} svg{display:block}</style></head><body>
+<svg id="pfp" width="800" height="800" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg"></svg>
+<svg id="banner" width="2560" height="1440" viewBox="0 0 2560 1440" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// LAST LIGHT · SCP channel art. The mark: a containment ring marked like a clock face, broken at the top where
+// a single lamp hangs; under it, a pale faceless head. (Original design: not the SCP Foundation logo.)
+const defs = `<defs>
+  <radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe9b8" stop-opacity=".6"/><stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/></radialGradient>
+  <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3d6" stop-opacity=".55"/><stop offset="1" stop-color="#fff3d6" stop-opacity="0"/></linearGradient>
+  <radialGradient id="vig" cx=".5" cy=".5" r=".7"><stop offset=".45" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".8"/></radialGradient>
+  <radialGradient id="face" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#e9ecf2"/><stop offset="1" stop-color="#9ea4b0"/></radialGradient>
+  <filter id="grain"><feTurbulence baseFrequency=".9" seed="3"/><feColorMatrix values="0 0 0 0 .5  0 0 0 0 .5  0 0 0 0 .5  0 0 0 .06 0"/></filter>
+  <filter id="glow"><feGaussianBlur stdDeviation="6"/></filter>
+</defs>`;
+
+function mark(cx, cy, R) {  // the emblem, centred at (cx, cy), ring radius R
+  let s = '';
+  const gap = 26;  // degrees of ring left open at the top
+  const a0 = (-90 + gap / 2) * Math.PI / 180, a1 = (270 - gap / 2) * Math.PI / 180;
+  const p = a => [cx + R * Math.cos(a), cy + R * Math.sin(a)];
+  s += `<path d="M${p(a0)} A${R},${R} 0 1 1 ${p(a1)}" fill="none" stroke="#cfd6e6" stroke-width="${R * 0.025}" opacity=".85"/>`;
+  for (let i = 0; i < 60; i++) {  // clock ticks, a long one at every hour; the 10 o'clock tick (22:00) in red
+    const a = (-90 + i * 6) * Math.PI / 180; if (Math.abs(i * 6) < gap / 2 + 1 || Math.abs(i * 6 - 360) < gap / 2 + 1) continue;
+    const big = i % 5 === 0, r1 = R * (big ? 0.86 : 0.92), red = i === 50;
+    s += `<line x1="${cx + r1 * Math.cos(a)}" y1="${cy + r1 * Math.sin(a)}" x2="${cx + R * 0.97 * Math.cos(a)}" y2="${cy + R * 0.97 * Math.sin(a)}" stroke="${red ? '#ff5a5a' : '#cfd6e6'}" stroke-width="${R * (big ? 0.018 : 0.008)}" opacity="${red ? 1 : .6}"/>`;
+  }
+  // the lamp hanging through the gap, its cone, and the faceless head in the light
+  s += `<line x1="${cx}" y1="${cy - R * 1.25}" x2="${cx}" y2="${cy - R * 0.62}" stroke="#3a4152" stroke-width="${R * 0.02}"/>`;
+  s += `<path d="M${cx - R * .16},${cy - R * .52} L${cx - R * .07},${cy - R * .64} L${cx + R * .07},${cy - R * .64} L${cx + R * .16},${cy - R * .52} Z" fill="#20242f"/>`;
+  s += `<rect x="${cx - R * .15}" y="${cy - R * .53}" width="${R * .3}" height="${R * .03}" fill="#fff6e0" filter="url(#glow)"/><rect x="${cx - R * .15}" y="${cy - R * .53}" width="${R * .3}" height="${R * .025}" fill="#fff6e0"/>`;
+  s += `<path d="M${cx - R * .14},${cy - R * .5} L${cx + R * .14},${cy - R * .5} L${cx + R * .5},${cy + R * .62} L${cx - R * .5},${cy + R * .62} Z" fill="url(#beam)"/>`;
+  s += `<ellipse cx="${cx}" cy="${cy + R * .62}" rx="${R * .55}" ry="${R * .1}" fill="url(#pool)"/>`;
+  s += `<path d="M${cx - R * .2},${cy + R * .62} Q${cx - R * .22},${cy + R * .3} ${cx},${cy + R * .26} Q${cx + R * .22},${cy + R * .3} ${cx + R * .2},${cy + R * .62} Z" fill="#05060a"/>`;
+  s += `<ellipse cx="${cx}" cy="${cy + R * .08}" rx="${R * .15}" ry="${R * .2}" fill="url(#face)"/>`;
+  return s;
+}
+const redact = (x, y, w, h, op = 1) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#0b0c10" stroke="#2a3040" stroke-width="1.5" opacity="${op}"/>`;
+const T = (txt, x, y, z, op = 1, w = 200, ls = 6, anchor = 'start', fill = '#e8ecf5') =>
+  `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="Inter" font-weight="${w}" font-size="${z}" fill="${fill}" opacity="${op}" letter-spacing="${ls}">${txt}</text>`;
+
+// ---- profile picture
+let p = defs + `<rect width="800" height="800" fill="#07080d"/>` + mark(400, 410, 300);
+p += `<rect width="800" height="800" fill="url(#vig)" opacity=".6"/><rect width="800" height="800" filter="url(#grain)"/>`;
+document.getElementById('pfp').innerHTML = p;
+
+// ---- banner: name and tagline left, the mark centre-right, a few case files fading into the dark on the right
+let b = defs + `<rect width="2560" height="1440" fill="#07080d"/>`;
+for (let i = 0; i < 26; i++) b += `<line x1="0" y1="${520 + i * 16}" x2="2560" y2="${520 + i * 16}" stroke="#ffffff" stroke-width="1" opacity=".015"/>`;
+b += mark(1800, 722, 165);
+b += T('LAST LIGHT', 560, 700, 104, 1, 200, 26);
+b += T('SCP FILES, WHISPERED IN THE DARK', 566, 768, 34, .7, 300, 10);
+b += `<line x1="566" y1="812" x2="1360" y2="812" stroke="#2a3040" stroke-width="2"/>`;
+b += T('NEW FILE EVERY WEEK', 566, 860, 28, .5, 300, 10);
+// case files
+const files = [['SCP-3008', 'EUCLID', 1], ['SCP-████', 'KETER', .6], ['SCP-████', 'EUCLID', .35]];
+files.forEach(([id, cls, op], i) => {
+  const x = 2080 + i * 26, y = 580 + i * 112;
+  b += `<g opacity="${op}"><rect x="${x}" y="${y}" width="380" height="96" rx="6" fill="#0e1118" stroke="#2a3040" stroke-width="2"/>`;
+  b += T(id, x + 24, y + 42, 30, .9, 300, 6) + T(`OBJECT CLASS   ${cls}`, x + 24, y + 76, 18, .55, 300, 5, 'start', cls === 'KETER' ? '#ff8080' : '#cfd6e6');
+  b += redact(x + 230, y + 22, 120, 22, .9) + `</g>`;
+});
+b += `<rect width="2560" height="1440" fill="url(#vig)" opacity=".55"/><rect width="2560" height="1440" filter="url(#grain)"/>`;
+document.getElementById('banner').innerHTML = b;
+</script></body></html>
