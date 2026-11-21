@@ -1,0 +1,96 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden} svg{display:block}</style>
+<script src="../ll.js"></script></head><body>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// SCP-087 "The stairs". Everything outside the flashlight is black.
+function stairs(t, phase, dir = 1, num = '') {  // a flight of 13 steps going down-and-away, then a landing; phase scrolls the descent
+  let s = `<rect width="${W}" height="${H}" fill="#101114"/>`;
+  s += `<polygon points="0,0 220,560 220,1920 0,1920" fill="#16171b"/><polygon points="1080,0 860,560 860,1920 1080,1920" fill="#131418"/>`;
+  const off = (phase % 1);
+  for (let i = -2; i < 16; i++) {
+    const k = i + off * dir;  // step index from the camera
+    const z = Math.pow(0.86, k);  // perspective scale
+    const y = 560 + 1360 * z, h = 80 * z, wd = 640 * z + 40;
+    if (y < 560 || y > 1980) continue;
+    s += `<rect x="${540 - wd / 2}" y="${y}" width="${wd}" height="${h * .35}" fill="#25262b"/><rect x="${540 - wd / 2}" y="${y + h * .35}" width="${wd}" height="${h * .65}" fill="#1a1b1f"/>`;
+    s += `<line x1="${540 - wd / 2}" y1="${y}" x2="${540 + wd / 2}" y2="${y}" stroke="#34363d" stroke-width="${2 * z + .5}"/>`;
+  }
+  // the landing at the bottom of this flight: a half-round platform, a wall, a stencilled number; the next flight turns back
+  s += `<rect x="300" y="380" width="480" height="190" fill="#141519"/><path d="M300,570 Q540,520 780,570 Z" fill="#202126"/>`;
+  s += `<path d="M300,570 L780,570" stroke="#2c2e34" stroke-width="3"/><rect x="700" y="420" width="80" height="150" fill="#0c0d10"/>`;
+  if (num) s += `<text x="420" y="500" font-family="Inter" font-weight="700" font-size="56" fill="#3a3c44" letter-spacing="4">${num}</text>`;
+  // handrail
+  s += `<path d="M120,1920 L470,620" stroke="#2e3036" stroke-width="10"/><path d="M960,1920 L610,620" stroke="#2a2c31" stroke-width="10"/>`;
+  return s;
+}
+function torch(x, y, r, b = 1) {  // mask everything outside a soft flashlight circle
+  return `<defs><radialGradient id="tm" cx="${x / W}" cy="${y / H}" r="${r / H}" gradientUnits="objectBoundingBox" gradientTransform="scale(1,${H / W}) translate(0,0)"></radialGradient>
+    <mask id="tmask"><rect width="${W}" height="${H}" fill="#fff"/><ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * 1.15}" fill="#000" filter="url(#blur30)"/></mask></defs>
+    <rect width="${W}" height="${H}" fill="#000" mask="url(#tmask)" opacity="${b}"/><ellipse cx="${x}" cy="${y}" rx="${r * .9}" ry="${r}" fill="url(#torch)" opacity="${.35 * b}"/>`;
+}
+function face087(x, y, s, op = 1) {  // smooth pale face: no pupils, no nose, no mouth
+  return `<g transform="translate(${x},${y}) scale(${s})" opacity="${op}"><ellipse cx="0" cy="0" rx="70" ry="92" fill="url(#pale)"/>
+    <ellipse cx="-26" cy="-14" rx="16" ry="11" fill="#f6f7fa"/><ellipse cx="26" cy="-14" rx="16" ry="11" fill="#f6f7fa"/>
+    <ellipse cx="-26" cy="-14" rx="16" ry="11" fill="none" stroke="#8a909c" stroke-width="2"/><ellipse cx="26" cy="-14" rx="16" ry="11" fill="none" stroke="#8a909c" stroke-width="2"/></g>`;
+}
+
+function scene(t) {
+  const L = id => ln(id);
+  let s = '', hud = '', over = '', push = 1, cy = 1000, shake = 0, shakeY = 0;
+  const bob = Math.sin(t * 6) * 6;
+  if (t < L('02').start) {  // a corridor, a janitor's closet door, opening onto black
+    const k = prog('01'), open = ease((t - wordT('01', /staircase/i)) / 1.2);
+    s = `<rect width="${W}" height="${H}" fill="#0c0d10"/><polygon points="0,1920 1080,1920 760,1250 320,1250" fill="#15161a"/><rect x="320" y="560" width="440" height="690" fill="#17181d"/>`;
+    s += lamp(540, 300, 1250, 280, .85);
+    s += `<rect x="430" y="820" width="220" height="430" fill="#020203"/>`;  // doorway (black inside)
+    s += `<polygon points="430,820 ${430 + 220 * (1 - open)},${820 - 20 * open} ${430 + 220 * (1 - open)},${1250 + 20 * open} 430,1250" fill="#3a3c42" stroke="#4a4d55" stroke-width="3"/>`;
+    s += `<rect x="470" y="880" width="${140 * (1 - open) + 1}" height="40" fill="#2a2c31" opacity="${1 - open}"/>`;
+    hud = title('SCP-087', 'EUCLID') + (open > 0 ? '' : T('JANITORIAL', 540, 905, 22, .6 * (1 - open), 400, 4, 'middle'));
+    push = lerp(1, 1.4, ease(k)); cy = 1035;
+  } else if (t < L('03').start) {  // thirteen steps, a landing, turn
+    const k = prog('02');
+    s = stairs(t, t * 1.4, 1, '01');
+    hud = T('STEP', 80, 330, 30, .7, 300, 8) + T(`${Math.min(13, 1 + Math.floor(k * 16))} / 13`, 80, 395, 52, 1, 200, 8) + T('LANDING   1', 80, 455, 28, .6, 300, 8);
+    shakeY = bob;
+  } else if (t < L('05').start) {  // flashlight only; crying from below
+    const k = clamp((t - L('03').start) / (L('05').start - L('03').start));
+    s = stairs(t, t * 1.2, 1, '0' + (2 + Math.floor((t - L('03').start) / 2.2)));
+    over = torch(540, 1150, 360);
+    hud = T('LIGHT   75 W', 80, 330, 30, .7, 300, 8) + T('VISIBLE   1.5 FLIGHTS', 80, 385, 30, .7, 300, 8);
+    if (t >= L('04').start) hud += T('UNKNOWN VOICE   BELOW', 80, 450, 28, blink(t, 1.5), 300, 8, 'start', '#ff8080');
+    shakeY = bob;
+  } else if (t < L('07').start) {  // landing counter climbs; the crying stays the same distance away
+    const k = clamp((t - L('05').start) / (L('07').start - L('05').start));
+    s = stairs(t, t * 2.2, 1, String(Math.floor(lerp(10, 50, ease(k * 1.3)))));
+    over = torch(540, 1150, 340);
+    const land = Math.floor(lerp(10, 50, ease(k * 1.3)));
+    hud = T('LANDING', 80, 330, 30, .7, 300, 8) + T(String(land), 80, 400, 64, 1, 200, 8) + T(`DEPTH   ${Math.round(land * 3.6)} m`, 80, 460, 28, .6, 300, 8);
+    hud += T('SOURCE OF CRYING   200 m BELOW', 80, 515, 26, .7, 300, 6, 'start', '#ff8080');
+    shakeY = bob;
+  } else if (t < L('09').start) {  // something on the next landing
+    const k = clamp((t - L('07').start) / (L('09').start - L('07').start)), seen = t >= L('08').start;
+    s = stairs(t, 0, 1, '51') + face087(540, seen ? 1060 : 740, seen ? lerp(1.6, 2.6, ease(k * 2)) : .6, seen ? 1 : ease(k * 3) * .9);
+    const fl = seen && (Math.floor(t * 12) % 7 === 0);
+    over = torch(540, seen ? 1060 : 800, seen ? 420 : 300, 1) + (fl ? `<rect width="${W}" height="${H}" fill="#000" opacity=".85"/>` : '');
+    push = seen ? 1.05 : 1.0;
+  } else if (t < L('11').start) {  // run back up; the landings keep coming
+    const k = clamp((t - L('09').start) / (L('11').start - L('09').start));
+    s = stairs(t, t * 3.2, -1, t >= L('10').start ? String(Math.floor(lerp(100, 200, ease((t - L('10').start) / (L('11').start - L('10').start + .5))))) : '');
+    over = torch(540 + Math.sin(t * 9) * 40, 1000, 330);
+    shake = Math.sin(t * 40) * 6; shakeY = Math.sin(t * 13) * 14;
+    if (t >= L('10').start) hud = T('LANDING', 80, 330, 30, .7, 300, 8) + T(String(Math.floor(lerp(100, 200, ease((t - L('10').start) / (L('11').start - L('10').start + .5))))), 80, 400, 64, 1, 200, 8, 'start', '#ff8080');
+  } else {  // the top: a blank wall where the door was; the flashlight dies
+    const k = prog('11');
+    s = `<rect width="${W}" height="${H}" fill="#101114"/><rect x="200" y="420" width="680" height="1100" fill="#1b1c20"/><polygon points="200,1520 880,1520 1080,1920 0,1920" fill="#17181c"/>`;
+    s += `<rect x="420" y="880" width="240" height="640" fill="none" stroke="#2a2b31" stroke-width="6" stroke-dasharray="30 18" opacity=".7"/>`;
+    for (let i = 0; i < 9; i++) s += `<line x1="200" y1="${470 + i * 120}" x2="880" y2="${470 + i * 120}" stroke="#222329" stroke-width="2"/>`;
+    const dying = t > wordT('11', /isn/i) ? clamp(1 - (t - wordT('11', /isn/i)) / 1.0) : 1;
+    const fl = dying < 1 && Math.floor(t * 18) % 3 === 0;
+    over = torch(540, 960, 380, 1) + `<rect width="${W}" height="${H}" fill="#000" opacity="${fl ? 1 : 1 - dying}"/>`;
+    hud = T('EXIT', 80, 330, 30, .7, 300, 8) + T('NOT FOUND', 80, 390, 40, blink(t), 300, 8, 'start', '#ff8080');
+    push = lerp(1, 1.1, k);
+  }
+  return { body: s, hud, over, push, cy, shake, shakeY };
+}
+</script></body></html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden} svg{display:block}</style>
+<script src="../ll.js"></script></head><body>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// SCP-096 "Don't look at his face". His face is never shown: back turned, hidden by his hands, or a blur.
+function shyguy(x, y, s, pose = 'back', t = 0) {  // feet at (x, y); 2.38 m tall, very long arms
+  let c = '';
+  const sway = Math.sin(t * 1.3) * 3;
+  c += `<path d="M-14,0 L-18,-300 M14,0 L18,-300" stroke="url(#pale)" stroke-width="20" stroke-linecap="round"/>`;
+  c += `<path d="M-46,-300 Q-50,-470 -30,-520 L30,-520 Q50,-470 46,-300 Z" fill="url(#pale)"/>`;
+  if (pose === 'back') {
+    c += `<path d="M-34,-500 Q-90,-360 -84,-120 Q-82,-40 -70,${-10 + sway}" stroke="url(#pale)" stroke-width="16" fill="none" stroke-linecap="round"/>`;
+    c += `<path d="M34,-500 Q90,-360 84,-120 Q82,-40 70,${-10 - sway}" stroke="url(#pale)" stroke-width="16" fill="none" stroke-linecap="round"/>`;
+    c += `<ellipse cx="0" cy="-575" rx="46" ry="58" fill="url(#pale)"/>`;  // back of the head
+  } else {  // crouched, hands over the face
+    c = `<path d="M-50,0 Q-70,-120 -30,-200 M50,0 Q70,-120 30,-200" stroke="url(#pale)" stroke-width="20" fill="none" stroke-linecap="round"/>`;
+    c += `<path d="M-46,-180 Q-60,-330 -20,-380 L20,-380 Q60,-330 46,-180 Z" fill="url(#pale)"/>`;
+    c += `<ellipse cx="0" cy="-430" rx="46" ry="56" fill="url(#pale)"/>`;
+    c += `<path d="M-30,-360 Q-120,-300 -60,-440 M30,-360 Q120,-300 60,-440" stroke="url(#pale)" stroke-width="16" fill="none" stroke-linecap="round"/>`;
+    c += `<path d="M-62,-470 q30,-30 60,0 q30,-30 64,2 l-6,50 q-60,20 -116,0 Z" fill="#c9cdd6"/>`;  // long fingers over the face
+    for (let i = 0; i < 8; i++) c += `<line x1="${-56 + i * 15}" y1="-472" x2="${-52 + i * 15}" y2="-428" stroke="#8a909c" stroke-width="2"/>`;
+  }
+  return `<g transform="translate(${x},${y}) scale(${s})">${c}</g>`;
+}
+
+function cube(x, y, w, lit = 1) {  // the 5 m steel containment cube, seen from a corner
+  return `<g><polygon points="${x - w},${y} ${x},${y + w * .25} ${x},${y - w * .95} ${x - w},${y - w * 1.2}" fill="#2a2e36"/>
+    <polygon points="${x},${y + w * .25} ${x + w * .9},${y} ${x + w * .9},${y - w * 1.2} ${x},${y - w * .95}" fill="#1c1f25"/>
+    <polygon points="${x - w},${y - w * 1.2} ${x},${y - w * .95} ${x + w * .9},${y - w * 1.2} ${x},${y - w * 1.45}" fill="#363b45" opacity="${lit}"/>
+    ${[0.2, 0.45, 0.7].map(k => `<line x1="${x - w}" y1="${y - w * 1.2 * k}" x2="${x}" y2="${y + w * .25 - w * 1.2 * k}" stroke="#3a3f4a" stroke-width="3"/>`).join('')}</g>`;
+}
+
+function phone(x, y, s, t, glitch = 0) {  // a hand-held phone showing a blurry pale photo
+  let c = `<rect x="-150" y="-300" width="300" height="600" rx="36" fill="#0b0c10" stroke="#2a2e38" stroke-width="6"/>`;
+  c += `<rect x="-132" y="-270" width="264" height="540" rx="18" fill="#1a1d24"/>`;
+  c += `<g clip-path="url(#scr)"><rect x="-132" y="-170" width="264" height="300" fill="#2b2f38"/><ellipse cx="${10 + glitch * 20}" cy="-40" rx="52" ry="70" fill="#dfe3ea" filter="url(#blur12)"/><rect x="-40" y="20" width="100" height="110" fill="#cdd2db" filter="url(#blur12)" opacity=".8"/></g>`;
+  c += `<rect x="-112" y="150" width="180" height="14" rx="7" fill="#3a3f4a"/><rect x="-112" y="178" width="120" height="14" rx="7" fill="#2f333d"/>`;
+  if (glitch) for (let i = 0; i < 6; i++) c += `<rect x="-132" y="${-170 + rnd(i + Math.floor(t * 24)) * 300}" width="264" height="${4 + rnd(i) * 10}" fill="#fff" opacity=".25"/>`;
+  return `<defs><clipPath id="scr"><rect x="-132" y="-170" width="264" height="300"/></clipPath></defs><g transform="translate(${x},${y}) scale(${s})">${c}</g>`;
+}
+
+function scene(t) {
+  const L = id => ln(id);
+  let s = '', hud = '', over = '', push = 1, cy = 1100, shake = 0;
+  const dark = `<rect width="${W}" height="${H}" fill="#07080c"/>`;
+  if (t < L('02').start) {  // the cube in a dark hall
+    s = dark + `<rect y="1300" width="${W}" height="620" fill="#0b0c10"/>` + lamp(540, 300, 1300, 380, ease(prog('01') * 2)) + cube(560, 1330, 300);
+    push = 1 + .08 * prog('01'); hud = title('SCP-096', 'EUCLID');
+  } else if (t < L('03').start) {  // him, from behind, with measurements
+    const k = prog('02');
+    s = dark + lamp(540, 260, 1500, 360) + shyguy(540, 1500, 1.25, 'back', t);
+    s += `<line x1="820" y1="1500" x2="820" y2="${1500 - 600 * 1.25 * ease(k * 1.5)}" stroke="#cfd6e6" stroke-width="3"/>`;
+    hud = title('SCP-096', 'EUCLID') + T('HEIGHT   2.38 m', 80, 330, 34, ease(k * 2), 300, 8) + T('ARMS   1.5 m', 80, 385, 34, ease(k * 2 - .5), 300, 8);
+    push = lerp(1, 1.12, k); cy = 1000;
+  } else if (t < L('04').start) {  // pacing in the cube
+    const k = prog('03');
+    s = `<rect width="${W}" height="${H}" fill="#14161b"/>` + `<polygon points="0,1920 1080,1920 840,1250 240,1250" fill="#1d2027"/>` + `<rect x="240" y="500" width="600" height="750" fill="#191b21"/>`;
+    s += shyguy(lerp(360, 720, (Math.sin(t * .8) + 1) / 2), 1350, .9, 'back', t);
+    hud = T('CAMERAS', 80, 330, 30, .7, 300, 8) + T('NONE', 80, 385, 40, 1, 300, 8, 'start', '#ff8080') + T('PRESSURE SENSORS   ACTIVE', 80, 450, 28, .6, 300, 6);
+  } else if (t < L('05').start) {  // the forbidden photo
+    s = dark + `<rect x="190" y="560" width="700" height="800" fill="#e8e2d4"/><rect x="230" y="600" width="620" height="620" fill="#2b2f38"/>`;
+    s += `<ellipse cx="540" cy="860" rx="110" ry="150" fill="#dfe3ea" filter="url(#blur30)"/><rect x="430" y="980" width="220" height="240" fill="#cdd2db" filter="url(#blur30)" opacity=".8"/>`;
+    s += `<rect x="300" y="1250" width="480" height="70" fill="#7a1c1c" transform="rotate(-6 540 1285)"/>` + T('DO NOT VIEW', 540, 1300, 44, 1, 600, 10, 'middle', '#f4e6e6').replace('<text', '<text transform="rotate(-6 540 1285)"');
+    push = lerp(1, 1.18, prog('04')); cy = 900;
+    hud = T('PHOTO 096-██', 80, 330, 34, .8, 300, 8);
+  } else if (t < L('06').start) {  // hands over the face, screaming
+    const k = prog('05'), scream = t >= wordT('05', /screaming/i);
+    s = dark + lamp(540, 300, 1500, 360) + shyguy(540, 1500, 1.35, 'cover', t);
+    shake = scream ? 8 * Math.sin(t * 70) : 0; push = lerp(1.05, 1.3, k); cy = 1100;
+    if (scream) over = `<rect width="${W}" height="${H}" fill="#5a0000" opacity="${.15 + .1 * Math.sin(t * 20)}"/>`;
+  } else if (t < L('08').start) {  // running: walls blur past; distance falls
+    const k = clamp((t - L('06').start) / (L('08').start - L('06').start));
+    s = dark;
+    for (let i = 0; i < 9; i++) {  // walls rushing at the camera
+      const z = ((t * 1.6 + i / 9) % 1), sc = 0.2 + z * 3, op = z < .85 ? z : (1 - z) * 6;
+      s += `<rect x="${540 - 300 * sc}" y="${960 - 420 * sc}" width="${600 * sc}" height="${840 * sc}" fill="none" stroke="#3a3f4a" stroke-width="${6 * sc}" opacity="${op}"/>`;
+    }
+    for (let i = 0; i < 24; i++) { const a = rnd(i) * Math.PI * 2, r1 = 200 + ((t * 900 + i * 80) % 900); s += `<line x1="${540 + Math.cos(a) * r1}" y1="${960 + Math.sin(a) * r1}" x2="${540 + Math.cos(a) * (r1 + 120)}" y2="${960 + Math.sin(a) * (r1 + 120)}" stroke="#cfd6e6" stroke-width="3" opacity=".35"/>`; }
+    s += shyguy(540, 1250, .55 + .2 * Math.sin(t * 12) * 0, 'back', t * 8);
+    const km = Math.max(0, Math.round(2400 * (1 - ease(k)) * 10) / 10);
+    hud = T('DISTANCE TO YOU', 80, 330, 30, .7, 300, 8) + T(`${km.toLocaleString('en-US')} km`, 80, 395, 52, 1, 200, 8, 'start', '#ff8080');
+    shake = 4 * Math.sin(t * 50);
+  } else if (t < L('10').start) {  // you, in bed, on your phone
+    const k = clamp((t - L('08').start) / (L('10').start - L('08').start));
+    s = `<rect width="${W}" height="${H}" fill="#05060a"/><ellipse cx="540" cy="900" rx="520" ry="420" fill="url(#phoneglow)"/>`;
+    s += `<rect x="120" y="1250" width="840" height="300" rx="30" fill="#14161c"/><rect x="140" y="1180" width="300" height="120" rx="40" fill="#1e2129"/>`;
+    s += you(330, 1330, .5, { sit: true, eyes: true, look: 1, rim: '#9fc4ff' });
+    s += phone(640, 1050, lerp(.7, 1.6, ease(k * 1.4)), t, t >= L('09').start ? 1 : 0);
+    push = 1; cy = 1000;
+    if (t >= L('09').start) hud = T('SOMEWHERE FAR AWAY', 80, 330, 28, .6, 300, 8) + T('SCREAMING', 80, 390, 40, blink(t), 300, 8, 'start', '#ff8080');
+  } else if (t < L('11').start) {  // drawings don't count
+    s = dark + `<rect x="190" y="520" width="700" height="880" fill="#e9e4d8"/>`;
+    const P = `stroke="#4a4a4a" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
+    s += `<g transform="translate(540,1300)" opacity=".85">
+      <path d="M-50,0 Q-75,-120 -32,-200 M50,0 Q75,-120 32,-200" ${P}/>
+      <path d="M-46,-180 Q-62,-330 -20,-382 L20,-382 Q62,-330 46,-180 Z" ${P}/>
+      <ellipse cx="0" cy="-432" rx="48" ry="58" ${P}/>
+      <path d="M-32,-362 Q-125,-300 -62,-440 M32,-362 Q125,-300 62,-440" ${P}/>
+      <path d="M-64,-472 q30,-30 62,0 q30,-30 66,2 l-6,52 q-60,20 -120,0 Z" ${P}/>
+      ${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<line x1="${-58 + i * 15}" y1="-470" x2="${-54 + i * 15}" y2="-424" stroke="#6a6a6a" stroke-width="2"/>`).join('')}
+      <path d="M-120,10 L130,10" stroke="#8a8a8a" stroke-width="3"/></g>`;
+    s += T('fig. 1', 250, 1380, 30, .6, 300, 2, 'start', '#555');
+    hud = T('ARTISTIC DEPICTION', 80, 330, 30, .7, 300, 8) + T('SAFE', 80, 390, 40, 1, 300, 8, 'start', '#9fe0a0');
+    push = 1.02;
+  } else {  // that photo wasn't a drawing
+    const k = prog('11');
+    s = `<rect width="${W}" height="${H}" fill="#05060a"/><ellipse cx="540" cy="900" rx="520" ry="420" fill="url(#phoneglow)"/>` + phone(540, 960, lerp(1.6, 2.6, ease(k)), t, 1);
+    hud = T('TIME UNTIL HE ARRIVES', 80, 330, 30, .7, 300, 8) + T(`00:0${Math.max(0, 3 - Math.floor(k * 4))}:${String(59 - Math.floor((t * 7) % 60)).padStart(2, '0')}`, 80, 395, 52, 1, 200, 8, 'start', '#ff8080');
+    if (t >= L('11').end + 0.15) over = `<rect width="${W}" height="${H}" fill="#000"/>`;
+  }
+  return { body: s, hud, over, push, cy, shake };
+}
+</script></body></html>

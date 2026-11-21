@@ -1,0 +1,73 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden} svg{display:block}</style>
+<script src="../ll.js"></script></head><body>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// SCP-173 "Don't blink". The statue is an original design (a rough concrete pillar with a crude painted face),
+// not the original sculpture photo.
+function statue(x, y, s) {  // feet at (x, y): a blocky concrete figure, rebar stubs, crude spray-painted face
+  let c = `<defs><linearGradient id="conc2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a857c"/><stop offset=".55" stop-color="#6b665e"/><stop offset="1" stop-color="#3f3c37"/></linearGradient>
+    <filter id="chip"><feTurbulence type="fractalNoise" baseFrequency=".08" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter></defs>`;
+  c += `<g filter="url(#chip)">`;
+  c += `<path d="M-62,0 L-70,-300 L-58,-352 L58,-352 L70,-300 L62,0 Z" fill="url(#conc2)"/>`;  // slab body
+  c += `<path d="M-52,-352 L-58,-440 Q-50,-482 0,-486 Q50,-482 58,-440 L52,-352 Z" fill="url(#conc2)"/>`;  // flat-topped head
+  c += `<path d="M-70,-300 L-118,-270 L-124,-250 L-76,-272 Z M70,-300 L120,-276 L126,-258 L76,-280 Z" fill="#5a564f"/></g>`;  // arm stubs
+  c += `<path d="M-124,-256 l-20,-4 M-122,-262 l-16,-12 M126,-264 l22,-8 M124,-268 l14,-16" stroke="#8a4f2c" stroke-width="4"/>`;  // rebar
+  for (let i = 0; i < 30; i++) c += `<circle cx="${-55 + rnd(i) * 110}" cy="${-470 + rnd(i + 40) * 460}" r="${1 + rnd(i + 9) * 2.5}" fill="#2f2d29" opacity=".6"/>`;
+  c += `<path d="M-60,-120 L60,-118 M-64,-230 L64,-226" stroke="#4a4741" stroke-width="2" opacity=".6"/>`;  // pour seams
+  c += `<circle cx="-22" cy="-430" r="14" fill="none" stroke="#1d4a28" stroke-width="7"/><circle cx="24" cy="-426" r="11" fill="none" stroke="#1d4a28" stroke-width="7"/>`;
+  c += `<path d="M-22,-416 l-2,26 M24,-415 l3,18" stroke="#1d4a28" stroke-width="4" opacity=".8"/>`;
+  c += `<path d="M-30,-392 l12,6 l10,-7 l12,8 l10,-6 l12,5" stroke="#8a1f1f" stroke-width="6" fill="none"/><path d="M-6,-386 l-1,18" stroke="#8a1f1f" stroke-width="3"/>`;
+  c += `<path d="M40,-470 L58,-440 L52,-352 L62,0 L40,0 Z" fill="#000" opacity=".25"/>`;  // shadow side
+  c += `<ellipse cx="0" cy="4" rx="90" ry="14" fill="#000" opacity=".55"/>`;
+  return `<g transform="translate(${x},${y}) scale(${s})">${c}</g>`;
+}
+
+function scene(t) {
+  const L = id => ln(id);
+  let s = cell({ stains: t >= L('05').start ? 9 : 4, door: true }), hud = '', over = '';
+  const lampOn = true;
+  s += lamp(540, 300, 1250, 330);
+  // where the statue is: it only moves while the lights are out
+  const fl0 = wordT('08', /flicker/i);
+  let sx = 540, sy = 1250, ss = 1.0;
+  const jumps = [[fl0 + 0.25, 600, 1420, 1.35], [fl0 + 0.75, 500, 1560, 1.75], [L('09').end + 0.25, 560, 1700, 2.25], [L('10').end + 0.2, 540, 1880, 3.1]];
+  for (const [at, x, y, sc] of jumps) if (t >= at) { sx = x; sy = y; ss = sc; }
+  const flick = t >= fl0 && t < L('11').end && ((t - fl0) % 0.5 < 0.08 || (t > fl0 && t - fl0 < 0.9 && Math.floor((t - fl0) * 14) % 3 === 0));
+  let push = 1, cy = 1100;
+  if (t < L('02').start) { push = 1 + 0.08 * prog('01'); hud = title('SCP-173', 'EUCLID'); }
+  else if (t < L('03').start) {  // close on the statue
+    push = lerp(1.6, 1.9, prog('02')); cy = 900; hud = title('SCP-173', 'EUCLID');
+    const k = prog('02');
+    ['CONCRETE', 'REBAR', 'KRYLON SPRAY PAINT'].forEach((w, i) => { if (k > i * .25) hud += T(w, 80, 330 + i * 52, 32, .8, 300, 8); });
+  } else if (t < L('04').start) {
+    push = 1.1; hud = T('LINE OF SIGHT', 80, 330, 34, .8, 300, 8) + T('MAINTAINED', 80, 385, 34, 1, 300, 8, 'start', '#9fe0a0');
+  } else if (t < L('05').start) {  // three people
+    s += you(330, 1520, .38, { flip: true }) + you(750, 1520, .38) + you(560, 1640, .42, { mop: true });
+    hud = T('PERSONNEL', 80, 330, 34, .8, 300, 8) + T(String(Math.min(3, 1 + Math.floor(prog('04') * 4))), 80, 395, 52, 1, 200, 8);
+  } else if (t < L('06').start) {  // the floor
+    s += you(560, 1640, .42, { mop: true });
+    push = lerp(1.2, 1.45, prog('05')); cy = 1600;
+  }
+  if (t >= L('06').start) {  // POV: just you, the statue, and your burning eyes
+    const k = clamp((t - L('06').start) / (L('11').end - L('06').start));
+    push = lerp(1.15, 1.5, k); cy = 1150;
+    over += `<rect width="${W}" height="${H}" fill="url(#burn)" opacity="${.2 + .7 * k}"/>`;
+    const open = t - L('06').start + 37;
+    hud += T('EYES OPEN', 80, 330, 34, .8, 300, 8) + T(`00:0${Math.floor(open / 60)}:${String(Math.floor(open) % 60).padStart(2, '0')}`, 80, 395, 52, 1, 200, 8, 'start', k > .5 ? '#ff8080' : '#e8ecf5');
+    if (t >= L('07').start) hud += T('PARTNER', 80, 470, 30, .7, 300, 8) + T('BLINKING', 80, 520, 34, blink(t), 300, 8, 'start', '#ff8080');
+    if (t >= L('10').start) for (let i = 0; i < 3; i++) over += `<ellipse cx="${300 + i * 260}" cy="${1820 - ((t * 60 + i * 90) % 300)}" rx="24" ry="40" fill="#cfe0ff" opacity=".12" filter="url(#soft)"/>`;
+  }
+  if (t >= L('04').start && t < L('06').start) s += '';  // statue drawn below for all
+  s = s + statue(sx, sy, ss * (t < L('03').start ? 1 : 1));
+  if (flick) over += `<rect width="${W}" height="${H}" fill="#000"/>`;
+  // closing eyelids during the last line, then black
+  if (t >= L('11').start) {
+    const k = clamp((t - L('11').start) / (L('11').end - L('11').start + 0.2));
+    const lid = 960 * ease(k) * (0.75 + 0.25 * Math.abs(Math.sin(t * 6)));
+    over += `<rect x="0" y="0" width="${W}" height="${lid}" fill="#000"/><rect x="0" y="${H - lid}" width="${W}" height="${lid}" fill="#000"/>`;
+    if (t >= L('11').end + 0.15) { over += `<rect width="${W}" height="${H}" fill="#000"/>`; hud = ''; }
+  }
+  return { body: s, hud, over, push, cy, noCaption: flick };
+}
+</script></body></html>
