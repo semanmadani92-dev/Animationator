@@ -60,16 +60,25 @@ export function makeHuman(lib, o = {}) {
     const nrm = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
     obj.position.copy(hit.point).addScaledVector(nrm, lift); obj.lookAt(obj.position.clone().add(nrm));
     root.add(obj); bone(boneName).attach(obj);
+    obj.userData.base = { p: obj.position.clone(), q: obj.quaternion.clone(), s: obj.scale.clone() };
+    return obj;
   };
+  const face = { eyes: [], brows: [], tears: [], mouth: null };
   const basic = c => new THREE.MeshBasicMaterial({ color: c });
   if (opt.face) {
     const hc = head.getCenter(new THREE.Vector3()), hs = head.getSize(new THREE.Vector3());
     for (const sx of [-1, 1]) {
-      stick(new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .12, hs.y * .045), basic(0x15110e)), hc.x + sx * hs.x * .17, hc.y + hs.y * .02, 'Head');
-      const brow = new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .17, hs.y * .022), basic(0x3a2618)); brow.rotation.z = sx * .1;
-      stick(brow, hc.x + sx * hs.x * .17, hc.y + hs.y * .1, 'Head', .005);
+      face.eyes.push(stick(new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .12, hs.y * .045), basic(0x15110e)), hc.x + sx * hs.x * .17, hc.y + hs.y * .02, 'Head'));
+      const brow = stick(new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .17, hs.y * .022), basic(0x3a2618)), hc.x + sx * hs.x * .17, hc.y + hs.y * .1, 'Head', .005);
+      brow.userData.side = sx; face.brows.push(brow);
+      for (let k = 0; k < 2; k++) {  // tears, hidden until needed
+        const tear = stick(new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .03, hs.y * .05), new THREE.MeshBasicMaterial({ color: 0xcfe4ff, transparent: true, opacity: .85 })), hc.x + sx * hs.x * (.13 + k * .07), hc.y - hs.y * .02, 'Head', .008);
+        tear.visible = false; tear.userData.k = k; face.tears.push(tear);
+      }
     }
-    stick(new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .2, hs.y * .022), basic(0x6a3a2c)), hc.x, hc.y - hs.y * .2, 'Head');
+    face.mouth = stick(new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .2, hs.y * .022), basic(0x4a2620)), hc.x, hc.y - hs.y * .2, 'Head');
+    face.up = new THREE.Vector3(0, 1, 0).applyQuaternion(bone('Head').getWorldQuaternion(new THREE.Quaternion()).invert());
+    face.hs = hs.y;
     stick(new THREE.Mesh(new THREE.PlaneGeometry(hs.x * .07, hs.y * .09), new THREE.MeshLambertMaterial({ color: opt.skin })), hc.x, hc.y - hs.y * .07, 'Head', .012);  // nose
     // buzz cut: a dark shell over the top of the head
     const hair = new THREE.Mesh(new THREE.SphereGeometry(.5, 9, 6, 0, Math.PI * 2, 0, Math.PI * .4), new THREE.MeshLambertMaterial({ color: 0x2a211b, flatShading: true }));
@@ -90,7 +99,7 @@ export function makeHuman(lib, o = {}) {
   }
   const mixer = new THREE.AnimationMixer(root), actions = {};
   for (const c of lib.clips) { const a = mixer.clipAction(c); a.enabled = true; a.setEffectiveWeight(0); a.play(); actions[c.name] = a; }
-  return { root, bones, bone, mixer, actions, head, chest };
+  return { root, bones, bone, mixer, actions, head, chest, face: opt.face ? face : null };
 }
 
 // Deterministic pose: segs = [{clip, t0, speed=1, offset=0, hold=false}]; crossfades `fade` seconds into each new segment.
@@ -133,4 +142,28 @@ export function makeRenderer(canvas) {
   const r = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: true });
   r.setSize(1080, 1920, false); r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
   return r;
+}
+
+// Fear on the face: f 0..1 (wide eyes, raised and pinched brows, open trembling mouth), tears 0..1 (running tears).
+export function setFear(h, f, t, tears = 0) {
+  const F = h.face; if (!F) return;
+  const zq = new THREE.Quaternion(), Z = new THREE.Vector3(0, 0, 1);
+  for (const e of F.eyes) { const b = e.userData.base; e.scale.set(b.s.x * (1 - .08 * f), b.s.y * (1 + .6 * f), 1); }
+  for (const w of F.brows) { const b = w.userData.base, sx = w.userData.side;
+    w.position.copy(b.p).addScaledVector(F.up, F.hs * .05 * f);
+    w.quaternion.copy(b.q).multiply(zq.setFromAxisAngle(Z, -sx * .38 * f)); }
+  { const m = F.mouth, b = m.userData.base, tr = 1 + Math.sin(t * 31) * .25 * f;
+    m.scale.set(b.s.x * (1 - .3 * f), b.s.y * (1 + 3 * f * tr), 1); m.position.copy(b.p).addScaledVector(F.up, -F.hs * .03 * f); }
+  for (const d of F.tears) { const b = d.userData.base; d.visible = tears > 0 && (d.userData.k === 0 || tears > .6);
+    if (!d.visible) continue; const run = ((t * .5 + d.userData.k * .37) % 1);
+    d.position.copy(b.p).addScaledVector(F.up, -F.hs * (.05 + .3 * run * tears)); d.scale.set(.8, .8 + 1.2 * run, 1); d.material.opacity = .85 * (1 - run * .6) * Math.min(1, tears * 2); }
+}
+
+// Fear in the body, applied after pose(): fast shallow breathing, trembling, and a flinch (0..1) that throws the head and chest back.
+export function bodyFear(h, f, t, flinch = 0) {
+  const b = n => h.bone(n), rate = 2.0 + 6 * f;
+  b('spine_02').rotation.x += Math.sin(t * rate) * (.015 + .03 * f);
+  b('spine_03').rotation.x += Math.sin(t * rate) * (.01 + .02 * f) - .3 * flinch;
+  const tr = .012 * f; b('Head').rotation.x += Math.sin(t * 37) * tr - .25 * flinch; b('Head').rotation.z += Math.sin(t * 29 + 1) * tr;
+  for (const s of ['l', 'r']) { b('hand_' + s).rotation.z += Math.sin(t * 41 + (s === 'l' ? 0 : 2)) * .08 * f; b('lowerarm_' + s).rotation.x += Math.sin(t * 33) * .03 * f; }
 }

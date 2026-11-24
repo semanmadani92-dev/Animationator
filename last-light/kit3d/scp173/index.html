@@ -6,7 +6,7 @@
 <script type="importmap">{"imports":{"three":"../three.module.js","three/addons/":"../jsm/"}}</script>
 <script type="module">
 // SCP-173, low-poly 3D, told by D-4172. The statue is an original design (not the original sculpture).
-import { THREE, load, loadMannequins, makeHuman, pose, makeRetro, makeRenderer } from '../kit3d.js';
+import { THREE, load, loadMannequins, makeHuman, pose, makeRetro, makeRenderer, setFear, bodyFear } from '../kit3d.js';
 const renderer = makeRenderer(document.getElementById('g')), retro = makeRetro(renderer, 450, 800);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x040405); scene.fog = new THREE.FogExp2(0x040405, .07);
 const cam = new THREE.PerspectiveCamera(50, 1080 / 1920, .03, 60);
@@ -162,6 +162,20 @@ window.draw = function (t) {
     }
     pose(h, segs, t);
   });
+  // ---- emotion: fear builds line by line; flinches at the scrape and every time it moves
+  const at = id => L(id).start, FEAR = [['01', .1], ['05', .2], ['07', .45], ['08', .55], ['09', .7], ['10', .85], ['11', 1]];
+  let fear = 0; for (let i = 0; i < FEAR.length; i++) { const a = at(FEAR[i][0]), nx = FEAR[i + 1]; const b = nx ? at(nx[0]) : 1e9;
+    if (t >= a) fear = nx ? lerp(FEAR[i][1], nx[1], clamp((t - a) / (b - a)) * .5) : FEAR[i][1]; }
+  const tears = t >= at('11') ? 1 : t >= at('07') ? .35 : 0;
+  const hits = [W_('10', /scrapes/i), ...jumps.slice(1).map(j => j[0] + .12)];
+  const flinch = Math.max(0, ...hits.map(a => t >= a ? Math.exp(-(t - a) * 5) : 0));
+  // he gives ground when it's closer
+  const back = .3 * ease((t - (L('10').end + .45)) / .5) + .2 * ease((t - (L('12').start + 1.75)) / .4);
+  if (back > 0) { const d = new THREE.Vector3(me.root.position.x - st.position.x, 0, me.root.position.z - st.position.z).normalize(); me.root.position.addScaledVector(d, back); }
+  setFear(me, fear, t, tears); bodyFear(me, fear, t, flinch);
+  setFear(partner, Math.min(1, fear * 1.1), t + 3, t >= at('08') ? .5 : 0); bodyFear(partner, fear * .9, t + 3, flinch * .7);
+  setFear(cleaner, fear * .8, t + 7); bodyFear(cleaner, fear * .7, t + 7, flinch);
+  window._dbg = me.bone('pelvis').position.toArray();
   // mop follows the cleaner's hands once he's mopping
   const mopping = cleaner.root.visible && t >= inT + .7 + walkDur && t < W_('10', /scrapes/i);
   if (mopping) { mop.position.set(2.1, 0, -1.45); mop.rotation.set(0, 0, .25); }
@@ -208,7 +222,12 @@ window.draw = function (t) {
   } else {  // POV from his eyes
     const hp = headOf(me), k = clamp((t - L('09').start) / (tEnd - L('09').start));
     pos = hp.clone().add(V(0, .02, 0)); look = V(sh.x, 1.55 + .2 * k, sh.z); fov = lerp(48, 40, k); burn = .45 + .5 * k; shake = .006 + .012 * k;
-    if (S(L('10').start, L('11').start)) { pos = V(sh.x + .8, .22, sh.z + 1.2); look = V(sh.x, .3, sh.z); fov = 50; burn = .5; }  // the floor scrape
+    if (S(W_('11', /eyes/i) - .1, L('12').start)) {  // cut to his face: wide eyes, tears
+      const hp2 = headOf(me), dir = V(sh.x - hp2.x, 0, sh.z - hp2.z).normalize(), k2 = clamp((t - W_('11', /eyes/i)) / 2.5);
+      pos = hp2.clone().addScaledVector(dir, lerp(.6, .45, k2)).add(V(.05, -.02, 0)); look = hp2.clone().add(V(0, -.03, 0)); fov = 36; shake = .004; }
+    if (S(L('10').start, W_('10', /scrapes/i) + .25)) { pos = V(sh.x + .8, .22, sh.z + 1.2); look = V(sh.x, .3, sh.z); fov = 50; burn = .5; }  // the floor scrape
+    else if (S(W_('10', /scrapes/i) + .25, L('11').start)) {  // all three flinch
+      const m = me.root.position, p2 = partner.root.position, mid = V((m.x + p2.x) / 2, 1.15, (m.z + p2.z) / 2), dd = V(sh.x - mid.x, 0, sh.z - mid.z).normalize(); pos = mid.clone().addScaledVector(dd, 2.7).add(V(-.2, .35, 0)); look = mid.clone().add(V(-.05, 0, 0)); fov = 58; burn = .45; shake = .004; }
   }
   pos.add(V(Math.sin(t * 13) * shake, Math.sin(t * 9.7) * shake, 0));
   cam.fov = fov; cam.updateProjectionMatrix(); cam.position.copy(pos); cam.lookAt(look);
