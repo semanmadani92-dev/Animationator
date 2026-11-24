@@ -1,0 +1,19 @@
+<!doctype html><html><body style="margin:0;background:#111">
+<canvas id="c" width="256" height="256"></canvas>
+<script type="importmap">{"imports":{"three":"./three.module.js","three/addons/":"./jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), preserveDrawingBuffer: true, antialias: true });
+const loader = new GLTFLoader();
+window.thumb = async (url) => {
+  const sc = new THREE.Scene(); sc.background = new THREE.Color(0x26282c);
+  sc.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2.2)); const d = new THREE.DirectionalLight(0xffffff, 2); d.position.set(3, 5, 4); sc.add(d);
+  const g = await loader.loadAsync(url); sc.add(g.scene);
+  const box = new THREE.Box3().setFromObject(g.scene), s = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  const R = Math.max(s.x, s.y, s.z) || 1, cam = new THREE.PerspectiveCamera(35, 1, R / 100, R * 100);
+  cam.position.copy(c).add(new THREE.Vector3(1, .8, 1.4).normalize().multiplyScalar(R * 1.9)); cam.lookAt(c);
+  r.render(sc, cam); return [g.animations.length, s.x.toFixed(2), s.y.toFixed(2), s.z.toFixed(2)];
+};
+window.ready = true;
+</script></body></html>
