@@ -139,7 +139,7 @@ window.draw = function (t) {
   tNow = t; const L = id => ln(id), W_ = (id, re) => wordT(id, re);
   const fl0 = W_('09', /flicker/i), tEnd = L('12').end;
   // statue position: it only moves in the dark
-  const jumps = [[0, -2.2, -3.2, .5], [fl0 + .35, -1.7, -1.9, .4], [L('10').end + .3, -1.15, -.8, .3], [L('12').start + 1.6, -.75, .15, .15]];
+  const jumps = [[0, -2.2, -3.2, .5], [fl0 + .35, -1.7, -1.9, .4], [L('10').end + .3, -1.15, -.8, .3], [L('12').start + 1.6, -.85, -.3, .15]];
   let J = jumps[0]; for (const j of jumps) if (t >= j[0]) J = j;
   st.position.set(J[1], 0, J[2]); st.rotation.y = J[3] + .35;
   // the three come in during line 05, then hold their positions
@@ -176,7 +176,7 @@ window.draw = function (t) {
   led.visible = Math.floor(t * 1.5) % 2 === 0; doorLight.intensity = t >= fl0 ? (Math.floor(t * 3) % 2) * 1.5 : 0;
   // ---- camera, shot by shot
   const S = (a, b) => t >= a && t < b, V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const headOf = h => h.bone('Head').getWorldPosition(new THREE.Vector3());
+  const headOf = h => h.bone('Head').getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, .1, 0));
   let pos, look, fov = 50, burn = 0, shake = 0;
   const sh = st.position, sHead = V(sh.x, 1.8, sh.z);
   if (t < L('02').start) {  // his face, slow push
