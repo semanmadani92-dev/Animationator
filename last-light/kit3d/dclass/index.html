@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden} #g{position:absolute;left:0;top:0;width:1080px;height:1920px} #c{position:absolute;left:0;top:0}</style>
+<script src="../ll.js"></script></head><body>
+<canvas id="g" width="1080" height="1920"></canvas>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script type="importmap">{"imports":{"three":"../three.module.js","three/addons/":"../jsm/"}}</script>
+<script type="module">
+import { THREE, loadMannequins, makeHuman, pose, makeRetro, makeRenderer } from '../kit3d.js';
+const renderer = makeRenderer(document.getElementById('g')), retro = makeRetro(renderer, 540, 960);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x07080a); scene.fog = new THREE.Fog(0x07080a, 6, 16);
+const cam = new THREE.PerspectiveCamera(42, 1080 / 1920, .05, 60);
+// studio: concrete floor with tile lines, a back wall, a hard key light and a cold rim light
+const fl = new THREE.Mesh(new THREE.PlaneGeometry(60, 20, 30, 10), new THREE.MeshLambertMaterial({ color: 0x3a3a3c, flatShading: true }));
+fl.rotation.x = -Math.PI / 2; fl.receiveShadow = true; scene.add(fl);
+const grid = new THREE.GridHelper(60, 30, 0x1c1c1e, 0x1c1c1e); grid.position.y = .002; scene.add(grid);
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(60, 8), new THREE.MeshLambertMaterial({ color: 0x2a2b2e })); wall.position.set(0, 4, -4); wall.receiveShadow = true; scene.add(wall);
+for (let x = -30; x < 30; x += 2.5) { const s = new THREE.Mesh(new THREE.BoxGeometry(.06, 8, .06), new THREE.MeshLambertMaterial({ color: 0x1d1e20 })); s.position.set(x, 4, -3.95); scene.add(s); }
+scene.add(new THREE.HemisphereLight(0x8090a8, 0x1a1410, .9));
+const key = new THREE.SpotLight(0xfff0dc, 110, 18, .55, .5, 1.4); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x9fb8ff, 1.6); rim.position.set(-3, 3, -4); scene.add(rim, rim.target);
+const lib = await loadMannequins(); const d = makeHuman(lib); scene.add(d.root);
+// the flashlight he holds in the FLASHLIGHT segment
+const torch = new THREE.Group(); const body = new THREE.Mesh(new THREE.CylinderGeometry(.022, .026, .2, 6), new THREE.MeshLambertMaterial({ color: 0x1a1a1a }));
+body.rotation.x = Math.PI / 2; torch.add(body); const beamL = new THREE.SpotLight(0xfff3d6, 0, 14, .38, .4, 1.2); beamL.position.set(0, 0, .1); beamL.target.position.set(0, 0, 2); torch.add(beamL, beamL.target);
+const cone = new THREE.Mesh(new THREE.ConeGeometry(.9, 3, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff1c8, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+cone.rotation.x = -Math.PI / 2; cone.position.z = 1.6; torch.add(cone);
+d.bone('hand_r').add(torch); torch.position.set(0, .09, .03); torch.rotation.set(-Math.PI / 2, 0, 0);
+
+const SEG = [  // [start, clip, label, sub, motion speed m/s]
+  [0, 'Idle_Loop', 'CLASS-D PERSONNEL', 'D-4172', 0],
+  [4.5, 'Walk_Loop', 'WALK', '', 1.35],
+  [7.5, 'Jog_Fwd_Loop', 'JOG', '', 3.0],
+  [10, 'Sprint_Loop', 'SPRINT', '', 5.6],
+  [12.5, 'Crouch_Fwd_Loop', 'SNEAK', '', 1.0],
+  [15.5, 'Idle_Torch_Loop', 'FLASHLIGHT', '', 0],
+  [18.5, 'Hit_Knockback', 'HIT', '', 0],
+  [20, 'Crouch_Idle_Loop', 'HIDE', '', 0],
+  [22.5, 'Death01', 'TERMINATED', '', 0],
+];
+window.END = 26.5;
+const segs = SEG.map(s => ({ clip: s[1], t0: s[0], hold: /Death|Hit_Knock/.test(s[1]) }));
+function xAt(t) { let x = 0; for (let i = 0; i < SEG.length; i++) { const a = SEG[i][0], b = i + 1 < SEG.length ? SEG[i + 1][0] : 1e9; if (t > a) x += (Math.min(t, b) - a) * SEG[i][4]; } return x; }
+window.draw = function (t) {
+  tNow = t; const i = SEG.reduce((k, s, j) => t >= s[0] ? j : k, 0), s = SEG[i];
+  pose(d, segs, t);
+  const x = xAt(t); d.root.position.set(x, 0, 0);
+  const moving = s[4] > 0;
+  d.root.rotation.y = i === 0 ? t * (Math.PI * 2 / 4.5) : moving ? Math.PI / 2 : lerp(Math.PI / 2, .35, ease((t - s[0]) / .6));
+  // camera: slow orbit in the intro, side-on tracking while moving, close and low for the reactions
+  let cx = x, cy = 1.25, cz = 4.6, lx = x, ly = .95;
+  if (i === 0) { cz = lerp(5.2, 4.2, t / 4.5); }
+  if (!moving && i > 0) { cz = 3.7; cy = 1.35; ly = 1.05; cx = x + .5; }
+  if (s[2] === 'TERMINATED') { cz = 3.4; cy = 1.8; ly = .4; }
+  cam.position.set(cx, cy, cz); cam.lookAt(lx, ly, 0);
+  if (window.CLOSE) { const hp = d.bone('Head').getWorldPosition(new THREE.Vector3()); const f = new THREE.Vector3(Math.sin(d.root.rotation.y), 0, Math.cos(d.root.rotation.y)); cam.position.copy(hp).addScaledVector(f, .9).add(new THREE.Vector3(.25, .05, 0)); cam.lookAt(hp); }
+  key.position.set(x + 1.5, 5.5, 3); key.target.position.set(x, .8, 0); rim.position.set(x - 3, 3, -4); rim.target.position.set(x, 1, 0);
+  const torchOn = s[2] === 'FLASHLIGHT'; torch.visible = torchOn; beamL.intensity = torchOn ? 40 : 0; cone.material.opacity = torchOn ? .05 : 0;
+  key.intensity = torchOn ? 25 : 120;
+  retro.u.burn.value = s[2] === 'TERMINATED' ? clamp((t - s[0]) / 1.5) * .9 : 0;
+  retro.render(scene, cam, t);
+  // HUD
+  const k = clamp((t - s[0]) / .3);
+  let g = DEFS(t) + `<rect width="${W}" height="${H}" fill="url(#vig)" opacity=".4"/>`;
+  g += T(s[2], 80, 200, i === 0 ? 46 : 52, k, 300, 14, 'start', s[2] === 'TERMINATED' ? '#ff8080' : '#e8ecf5');
+  if (i === 0) g += T(s[3], 80, 262, 34, k * .8, 300, 10, 'start', '#f0a060') + T('LOW-POLY CHARACTER TEST', 80, 310, 24, .5, 300, 8);
+  else g += T(`${String(i).padStart(2, '0')} / ${String(SEG.length - 1).padStart(2, '0')}`, 80, 255, 26, .5, 300, 8);
+  document.getElementById('c').innerHTML = g;
+};
+window.ready = true;
+</script></body></html>
