@@ -1,0 +1,258 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden} #g{position:absolute;left:0;top:0;width:1080px;height:1920px} #c{position:absolute;left:0;top:0}</style>
+<script src="../ll.js"></script></head><body>
+<canvas id="g" width="1080" height="1920"></canvas>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script type="importmap">{"imports":{"three":"../three.module.js","three/addons/":"../jsm/"}}</script>
+<script type="module">
+// SCP-096, low-poly 3D, told by D-4172. Its face is never shown clearly: only static, glitches and censor bars.
+import { THREE, load, loadMannequins, makeHuman, pose, makeRetro, makeRenderer, setFear, bodyFear } from '../kit3d.js';
+const renderer = makeRenderer(document.getElementById('g')), retro = makeRetro(renderer, 450, 800);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x040405); scene.fog = new THREE.FogExp2(0x040405, .06);
+const cam = new THREE.PerspectiveCamera(50, 1080 / 1920, .03, 80);
+let seed = 21; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const lam = (c, o = {}) => new THREE.MeshLambertMaterial(Object.assign({ color: c, flatShading: true }, o));
+const shadowy = o => { o.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } }); return o; };
+const put = (parent, o, x = 0, y = 0, z = 0, ry = 0, s = 1) => { o.position.set(x, y, z); o.rotation.y = ry; if (typeof s === 'number') o.scale.setScalar(s); else o.scale.set(...s); parent.add(shadowy(o)); return o; };
+const asset = async p => (await load('../assets/props/' + p)).scene;
+const box = (w, h, d, c, o) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), lam(c, o));
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+function canvasTex(w, h, paint) { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; paint(cv.getContext('2d'), w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.userData.cv = cv; return t; }
+function sign(lines, w, h, bg, fg, font) {
+  const t = canvasTex(512, Math.round(512 * h / w), (x, W2, H2) => { x.fillStyle = bg; x.fillRect(0, 0, W2, H2); x.fillStyle = fg; x.textAlign = 'center'; x.font = font; lines.forEach((l, i) => x.fillText(l, W2 / 2, (i + 1) * H2 / (lines.length + 1) + 14)); });
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: t, transparent: bg === 'transparent' }));
+}
+const [wallP, doorP, frameP, comp, lightP, chairP, ventP, crateP, cableP] = await Promise.all([
+  'scifi_megakit/Walls/WallAstra_Straight.gltf', 'scifi_megakit/Platforms/Door_DarkMetal.gltf', 'scifi_megakit/Platforms/Door_Frame_SquareTall.gltf',
+  'scifi_megakit/Props/Prop_Computer.gltf', 'scifi_megakit/Props/Prop_Light_Wide.gltf', 'house_interior/Chair_1.glb', 'scifi_megakit/Props/Prop_Vent_Wide.gltf',
+  'scifi_megakit/Props/Prop_Crate3.gltf', 'scifi_megakit/Props/Prop_Cable_1.gltf'].map(asset));
+
+// =========== SET A: the containment chamber with the steel cube (origin) ===========
+const A = new THREE.Group(); scene.add(A);
+put(A, box(22, .1, 22, 0x2c2c2e), 0, -.05, 0);
+for (const [w, d, x, z] of [[22, .3, 0, -11], [.3, 22, -11, 0], [.3, 22, 11, 0], [22, .3, 0, 11]]) put(A, box(w, 9, d, 0x232426), x, 4.5, z);
+for (let i = -10; i <= 10; i += 2.5) put(A, box(22, .02, .04, 0x161617), 0, .005, i);
+const CUBE = 4.6, cube = new THREE.Group(); put(A, cube, 0, 0, -1.5);
+const steel = lam(0x6d7177), seam = lam(0x3c3f44);
+const panels = [];  // the front face is made of plates that can be torn out
+for (const [w, h, d, x, y, z] of [[CUBE, CUBE, .12, 0, CUBE / 2, -CUBE / 2], [.12, CUBE, CUBE, -CUBE / 2, CUBE / 2, 0], [.12, CUBE, CUBE, CUBE / 2, CUBE / 2, 0], [CUBE, .12, CUBE, 0, CUBE, 0]]) put(cube, new THREE.Mesh(new THREE.BoxGeometry(w, h, d), steel), x, y, z);
+for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) { const p = put(cube, new THREE.Mesh(new THREE.BoxGeometry(CUBE / 3 - .03, CUBE / 3 - .03, .14), steel), -CUBE / 3 + a * CUBE / 3, CUBE / 6 + b * CUBE / 3, CUBE / 2); p.userData.home = p.position.clone(); panels.push(p); }
+for (let i = 0; i <= 3; i++) { put(cube, new THREE.Mesh(new THREE.BoxGeometry(CUBE + .04, .07, .05), seam), 0, i * CUBE / 3, CUBE / 2 + .07); put(cube, new THREE.Mesh(new THREE.BoxGeometry(.07, CUBE, .05), seam), -CUBE / 2 + i * CUBE / 3, CUBE / 2, CUBE / 2 + .07); }
+for (let i = 0; i < 40; i++) put(cube, new THREE.Mesh(new THREE.SphereGeometry(.035, 5, 3), seam), -CUBE / 2 + (i % 10 + .5) * CUBE / 10, Math.floor(i / 10) * CUBE / 3 + .02, CUBE / 2 + .09);
+put(cube, sign(['SCP-096'], 1.4, .45, '#d8c23a', '#151515', 'bold 110px Inter, Arial'), 0, 3.4, CUBE / 2 + .1);
+put(cube, sign(['DO NOT VIEW', 'SUBJECT’S FACE'], 1.6, .55, '#b01c1c', '#f4f4f4', 'bold 62px Inter, Arial'), 0, 2.6, CUBE / 2 + .1);
+const cubeSpot = new THREE.SpotLight(0xdfe6ff, 140, 22, .5, .5, 1.3); cubeSpot.position.set(3, 9, 5); cubeSpot.target.position.set(0, 1.5, -1.5); cubeSpot.castShadow = true; cubeSpot.shadow.mapSize.set(1024, 1024); A.add(cubeSpot, cubeSpot.target);
+const aHemi = new THREE.HemisphereLight(0x6a7488, 0x100e0c, .5); A.add(aHemi);
+const alarmA = new THREE.PointLight(0xff1a10, 0, 25, 1.2); alarmA.position.set(0, 7, 6); A.add(alarmA);
+// the observation window high on the front wall
+put(A, box(5, 1.6, .2, 0x0d1318, { transparent: true, opacity: .85 }), 0, 6.2, 10.85); const obsGlow = put(A, box(4.8, 1.4, .05, 0x8fa0b0, { emissive: 0x2a3440 }), 0, 6.2, 10.95);
+// inside the cube: dim, one caged bulb
+const inLight = new THREE.PointLight(0xdfe6ff, 9, 7, 1.4); inLight.position.set(0, CUBE - .4, -1.5); A.add(inLight);
+put(A, new THREE.Mesh(new THREE.IcosahedronGeometry(.08, 0), new THREE.MeshBasicMaterial({ color: 0xffe9c0 })), 0, CUBE - .35, -1.5);
+for (let i = 0; i < 14; i++) put(A, box(.02, .4 + R() * .5, .01, 0x4a4c50), -2.2 + R() * .02, .6 + R() * 2.5, -3 + R() * 3).rotation.z = R() - .5;  // scratches inside
+
+// =========== SET B: the observation room (x = 40) ===========
+const B = new THREE.Group(); B.position.set(40, 0, 0); scene.add(B);
+put(B, box(6, .1, 5, 0x3a3b3d), 0, -.05, 0); put(B, box(6, .1, 5, 0x1c1c1e), 0, 2.85, 0);
+put(B, box(6, 2.9, .2, 0x4b4d50), 0, 1.45, 2.5); put(B, box(.2, 2.9, 5, 0x45474a), -3, 1.45, 0); put(B, box(.2, 2.9, 5, 0x45474a), 3, 1.45, 0);
+put(B, box(6, 1.0, .2, 0x4b4d50), 0, .5, -2.5); put(B, box(6, .6, .2, 0x4b4d50), 0, 2.6, -2.5);
+put(B, box(5.8, 1.3, .04, 0x0b0f14, { transparent: true, opacity: .7 }), 0, 1.65, -2.5);  // the window down into the chamber
+const desk = put(B, box(4.2, .08, .9, 0x5a5650), 0, .78, -1.9); put(B, box(4.2, .75, .05, 0x3a3734), 0, .38, -2.3);
+// monitors: canvas screens; #2 is the one that comes on
+const screens = [];
+for (let i = 0; i < 4; i++) {
+  const g = new THREE.Group(); put(B, g, -1.5 + i, .82, -2.05, (i - 1.5) * -.12);
+  put(g, box(.62, .42, .06, 0x1a1a1c), 0, .38, 0); put(g, box(.06, .2, .06, 0x1a1a1c), 0, .1, 0); put(g, box(.24, .03, .16, 0x1a1a1c), 0, .01, 0);
+  const tex = canvasTex(160, 108, (x, w, h) => { x.fillStyle = '#050607'; x.fillRect(0, 0, w, h); });
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(.56, .36), new THREE.MeshBasicMaterial({ map: tex })); scr.position.set(0, .38, .035); g.add(scr); screens.push({ tex, scr, g });
+}
+const winFill = new THREE.PointLight(0x9fb4d0, 5, 5, 1.3); winFill.position.set(.3, 1.6, -2.2); B.add(winFill);  // cold light up through the window
+const scrLight = new THREE.PointLight(0xbfd0e0, 0, 4, 1.5); scrLight.position.set(.5, 1.3, -1.6); B.add(scrLight);
+const keyboard = put(B, box(.5, .03, .17, 0x222222), 0, .83, -1.6);
+put(B, chairP.clone(), .3, 0, -.9, Math.PI + .3, .5);
+// the photo, face down, stamped
+const photo = put(B, new THREE.Mesh(new THREE.PlaneGeometry(.22, .16), new THREE.MeshLambertMaterial({ map: canvasTex(220, 160, (x, w, h) => { x.fillStyle = '#e8e4da'; x.fillRect(0, 0, w, h); x.strokeStyle = '#b01c1c'; x.lineWidth = 6; x.strokeRect(20, 40, 180, 80); x.fillStyle = '#b01c1c'; x.font = 'bold 30px Inter, Arial'; x.textAlign = 'center'; x.fillText('DO NOT', 110, 74); x.fillText('TURN OVER', 110, 108); }) })), -1.3, .825, -1.65);
+photo.rotation.x = -Math.PI / 2; photo.rotation.z = .3;
+// a camera on the wall, a cloth draped over it
+const cloth = new THREE.Group(); put(B, cloth, 2.6, 2.45, -2.2);
+put(cloth, box(.22, .12, .3, 0xd8d8d4), 0, 0, 0); const drape = new THREE.Mesh(new THREE.ConeGeometry(.24, .4, 6), lam(0x2f3a4a)); drape.position.y = -.08; cloth.add(drape);
+const bLight = new THREE.PointLight(0xdfe8ff, 16, 9, 1.3); bLight.position.set(0, 2.6, 0); B.add(bLight); put(B, box(1.1, .04, .18, 0xeef4ff), 0, 2.8, 0);
+const bHemi = new THREE.HemisphereLight(0x6a7488, 0x100e0c, .9); B.add(bHemi);
+const alarmB = new THREE.PointLight(0xff1a10, 0, 9, 1.4); alarmB.position.set(-2.4, 2.6, 2.2); B.add(alarmB);
+put(B, sign(['OBSERVATION 096', 'CAMERAS MUST REMAIN COVERED'], 1.3, .38, '#d8c23a', '#151515', 'bold 40px Inter, Arial'), -1.6, 2.0, 2.39, Math.PI);
+const bucket = put(B, new THREE.Mesh(new THREE.CylinderGeometry(.16, .13, .3, 8), lam(0x3a5a8a)), 1.9, .15, 1.2);
+
+// =========== SET C: the corridor (x = 80), running along -z ===========
+const C = new THREE.Group(); C.position.set(80, 0, 0); scene.add(C);
+const CW = 1.4, CL = 44, KIT = .8;
+put(C, box(CW * 2, .1, CL, 0x2a2b2e), 0, -.05, -CL / 2 + 2); put(C, box(CW * 2, .1, CL, 0x151617), 0, 2.5, -CL / 2 + 2);
+for (let z = 2; z > -CL + 2; z -= 4 * KIT) {
+  put(C, wallP.clone(), -CW, 0, z - 2 * KIT, 0, KIT); put(C, wallP.clone(), CW, 0, z - 2 * KIT, Math.PI, KIT);
+  put(C, box(CW * 2, .03, .06, 0x0e0e0f), 0, .003, z);
+}
+const strips = [];  // alarm beacons along the ceiling
+for (let i = 0; i < 6; i++) { const z = -2 - i * 7; const b = put(C, new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, .1, 8), new THREE.MeshBasicMaterial({ color: 0x401010 })), CW - .25, 2.4, z); strips.push(b); }
+const alarmC = [0, 1, 2, 3].map(i => { const l = new THREE.PointLight(0xff1a10, 0, 14, 1.2); l.position.set(0, 2.2, 6 - i * 13); C.add(l); return l; });
+const cWhite = new THREE.PointLight(0xdfe8ff, 3, 10, 1.4); C.add(cWhite);
+const cHemi = new THREE.HemisphereLight(0x5a6478, 0x100e0c, .35); C.add(cHemi);
+const endDoor = put(C, doorP.clone(), 0, 0, -CL + 2.3, 0, .55); put(C, frameP.clone(), 0, 0, -CL + 2.2, 0, .55);
+put(C, box(CW * 2, 2.6, .2, 0x2a2b2e), 0, 1.3, -CL + 2);
+put(C, sign(['LOCKDOWN'], .9, .3, '#b01c1c', '#f4f4f4', 'bold 90px Inter, Arial'), 0, 2.15, -CL + 2.45);
+const startDoor = put(C, doorP.clone(), 0, 0, 1.9, Math.PI, .55);
+const endLight = new THREE.PointLight(0xffd0a0, 5, 8, 1.4); endLight.position.set(0, 2.2, -CL + 3); C.add(endLight);
+
+// =========== people ===========
+const lib = await loadMannequins();
+const me = makeHuman(lib, { number: 'D-4172' }); scene.add(shadowy(me.root));
+// SCP-096: pale, too tall, too thin, arms too long; no number, no hair; the face is never shown cleanly
+const shy = makeHuman(lib, { suit: 0xd8d3c8, skin: 0xe4dfd4, boots: 0xcfc9bc, number: '', face: false }); scene.add(shadowy(shy.root));
+shy.root.scale.set(.72, 1.3, .72);
+const stretch = () => { for (const s of ['l', 'r']) { shy.bone('lowerarm_' + s).scale.set(1, 1.6, 1); shy.bone('hand_' + s).scale.set(1, 1 / 1.6, 1); shy.bone('upperarm_' + s).scale.set(.85, 1.3, .85); } };  // after every pose(): clips also key bone scale
+// its face: a black glitch box that only exists in close shots
+const shyFace = new THREE.Mesh(new THREE.PlaneGeometry(.26, .32), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+
+window.ready = true;
+const SHOW = g => { for (const s of [A, B, C]) s.visible = s === g; };
+window.draw = function (t) {
+  tNow = t; const L = id => ln(id), W_ = (id, re) => wordT(id, re), S = (a, b) => t >= a && t < b;
+  const seen = W_('06', /face/i), scream = L('07').start + .9, breach = W_('10', /tears/i), tEnd = L('12').end;
+  const alarm = t >= W_('09', /alarms/i);
+  // ---- SCP-096 behaviour
+  let shySegs, shyPos = V(-1.2, 0, -2.6), shyRot = Math.PI * .75, inCube = true, shyFear = 0;
+  if (t < scream) shySegs = [{ clip: 'Crouch_Idle_Loop', t0: -9 }];
+  else if (t < breach - .3) { shySegs = [{ clip: 'Crouch_Idle_Loop', t0: -9 }, { clip: 'Zombie_Idle_Loop', t0: scream }]; shyFear = 1; }
+  else { shySegs = [{ clip: 'Sprint_Loop', t0: breach - .3, speed: 1.25 }]; inCube = false; }
+  // ---- choose the set and the camera
+  let set = B, pos, look, fov = 50, burn = 0, shake = 0, glitch = 0;
+  // D-4172: in the observation room until he runs, then in the corridor
+  let meSegs = [{ clip: 'Idle_Loop', t0: -9 }], meFear = .25, flinch = 0, tears = 0;
+  const run0 = W_('09', /run/i);
+  if (t < run0) {
+    me.root.position.set(40 + .2, 0, -.9); me.root.rotation.y = Math.PI;  // facing the desk and window
+    if (t < L('02').start) { me.root.position.set(40 + .6, 0, -.4); me.root.rotation.y = Math.PI; }
+    else if (t < L('04').start) { me.root.position.set(40 + 1.2, 0, .8); me.root.rotation.y = -Math.PI / 2; }
+    if (t < L('05').start && t >= L('02').start) meSegs = [{ clip: 'Fixing_Kneeling', t0: -9 }];
+    if (S(L('04').start, L('05').start)) { me.root.position.set(40 + 1.3, 0, 1.0); me.root.rotation.y = Math.PI * .8; }
+    if (t >= L('05').start) { meSegs = [{ clip: 'Idle_Loop', t0: L('05').start }]; meFear = .45; }
+    if (t >= seen) { meFear = .8; flinch = Math.exp(-(t - seen - .1) * 4) * (t > seen + .1 ? 1 : 0); }
+    if (t >= L('08').start) { meFear = 1; tears = .5; }
+  } else {
+    const u = t - run0; meSegs = [{ clip: 'Sprint_Loop', t0: run0 }]; meFear = 1; tears = 1;
+    const z = Math.max(-CL + 3.2, -u * 5.2);
+    if (t >= L('12').start - .2) meSegs = [{ clip: 'Sprint_Loop', t0: run0 }, { clip: 'Idle_Loop', t0: Math.max(L('12').start - .2, run0 + (CL - 3.2) / 5.2) }];
+    me.root.position.set(80, 0, z); me.root.rotation.y = Math.PI;
+    if (t >= L('12').start + .8) me.root.rotation.y = lerp(Math.PI, 0, ease((t - L('12').start - .8) / .8));  // he turns around
+  }
+  pose(me, meSegs, t); me.root.updateMatrixWorld(true); const hp = me.bone('Head').getWorldPosition(new THREE.Vector3()).add(V(0, .1, 0)); setFear(me, meFear, t, tears); bodyFear(me, meFear * (t >= run0 && t < L('12').start ? .3 : 1), t, flinch);
+  // SCP-096 position: crouched in the cube, then through the wall, then the corridor
+  if (inCube) { shy.root.position.copy(shyPos); shy.root.rotation.y = shyRot; }
+  else {
+    const u = t - breach + .3;
+    if (t < L('11').start) { shy.root.position.set(lerp(0, 0, 1), 0, -1.5 + u * 9); shy.root.rotation.y = 0; }
+    else { const k = clamp((t - L('11').start) / (L('12').start - L('11').start)); shy.root.position.set(80, 0, lerp(14, me.root.position.z + 22, k)); shy.root.rotation.y = Math.PI; }
+  }
+  pose(shy, shySegs, t); stretch();
+  if (shyFear) { const b = n => shy.bone(n); b('Head').rotation.y += Math.sin(t * 23) * .25; b('Head').rotation.x += Math.sin(t * 17) * .12; b('spine_03').rotation.x += Math.sin(t * 9) * .08;
+    for (const s of ['l', 'r']) { b('upperarm_' + s).rotation.x += Math.sin(t * 13 + (s === 'l' ? 0 : 1)) * .25; } }
+  shy.root.visible = true;
+  // panels tear out at the breach
+  panels.forEach((p, i) => { const k = clamp((t - breach - i * .015) / .7); p.position.copy(p.userData.home).add(V((i % 3 - 1) * 2.5 * k, (Math.floor(i / 3) - .5) * 1.4 * k - 2 * k * k, 6 * k));
+    p.rotation.set(k * (i + 1) * .7, k * (i % 2 ? 1 : -1) * 1.2, k * .4 * i); });
+  // monitors: off, then static, then the face (glitched, censored)
+  screens.forEach((s, i) => { const c = s.tex.userData.cv, x = c.getContext('2d');
+    const on = i === 2 && t >= W_('05', /flickers/i), allOn = alarm;
+    x.fillStyle = '#050607'; x.fillRect(0, 0, 160, 108);
+    if (on || allOn) { const img = x.getImageData(0, 0, 160, 108); let sd = Math.floor(t * 24) * 997 + i * 31;
+      for (let p = 0; p < img.data.length; p += 4) { sd = (sd * 16807) % 2147483647; const v = 40 + (sd % 120); img.data[p] = v * .8; img.data[p + 1] = v * .9; img.data[p + 2] = v; img.data[p + 3] = 255; }
+      x.putImageData(img, 0, 0);
+      if (i === 2 && t >= seen - .9 && t < L('09').start) { // a pale shape, a face, two dark eyes, a long mouth: shown only through noise
+        const jit = Math.sin(t * 50) * 2, sm = document.createElement('canvas'); sm.width = 32; sm.height = 22; const q = sm.getContext('2d');
+        q.fillStyle = '#000'; q.fillRect(0, 0, 32, 22); q.fillStyle = '#cfcabf'; q.beginPath(); q.ellipse(16, 11, 5.5, 9.5, 0, 0, Math.PI * 2); q.fill();
+        q.fillStyle = '#000'; q.beginPath(); q.ellipse(13.5, 8, 1.4, 1.1, 0, 0, Math.PI * 2); q.ellipse(18.5, 8, 1.4, 1.1, 0, 0, Math.PI * 2); q.fill();
+        q.beginPath(); q.ellipse(16, 15, 2.2, 3.6, 0, 0, Math.PI * 2); q.fill();
+        x.imageSmoothingEnabled = false; x.globalAlpha = .9; x.drawImage(sm, 0 + jit, 0, 160, 108); x.globalAlpha = 1;
+        const nz = x.getImageData(0, 0, 160, 108); for (let p = 0; p < nz.data.length; p += 4) { sd = (sd * 16807) % 2147483647; const v = (sd % 90) - 45; nz.data[p] += v; nz.data[p + 1] += v; nz.data[p + 2] += v; } x.putImageData(nz, 0, 0);
+        for (let k = 0; k < 6; k++) { const yy = (Math.floor(t * 30) * 13 + k * 19) % 108; x.drawImage(c, 0, yy, 160, 4, (k % 2 ? 6 : -6), yy, 160, 4); }
+        if (alarm || t > seen + 1.2) { x.fillStyle = '#b01c1c'; x.fillRect(40, 38, 80, 22); x.fillStyle = '#fff'; x.font = 'bold 14px Inter, Arial'; x.textAlign = 'center'; x.fillText('DO NOT VIEW', 80, 54); }
+      }
+      if (allOn && i !== 2) { x.fillStyle = '#b01c1c'; x.font = 'bold 18px Inter, Arial'; x.textAlign = 'center'; x.fillText('BREACH', 80, 60); }
+    }
+    s.tex.needsUpdate = true; });
+  scrLight.intensity = t >= W_('05', /flickers/i) && t < run0 ? 2 + Math.random() * 0 + Math.sin(t * 40) * .6 : 0;
+  // alarms
+  const blinkA = alarm ? (Math.sin(t * 7) > 0 ? 1 : .15) : 0;
+  alarmA.intensity = blinkA * 60; alarmB.intensity = blinkA * 14; alarmC.forEach(l => l.intensity = blinkA * 26); strips.forEach(b => b.material.color.setHex(blinkA > .5 ? 0xff2a20 : 0x401010));
+  cWhite.position.set(0, 2.2, me.root.position.z - 80 * 0 - 2); cWhite.intensity = alarm ? 1.2 : 3;
+  // ---- shots
+  if (t < L('02').start) { set = B; const k = prog('01'); pos = hp.clone().add(V(.22, .04, lerp(-1.25, -.8, ease(k)))); look = hp.clone().add(V(0, -.05, 0)); fov = 40; }
+  else if (t < L('03').start) {
+    const a = W_('02', /curled/i), b = W_('02', /tall/i);
+    if (t < a) { set = A; const k = (t - L('02').start) / (a - L('02').start); pos = V(lerp(7, 5, k), lerp(2.5, 3.2, k), lerp(9, 7, k)); look = V(0, 2, -1.5); fov = 55; }
+    else { set = A; const k = (t - a) / (L('03').start - a); const c = shy.root.position; pos = V(c.x + 1.4 - k * .4, 1.1 + k * .5, c.z + 1.3); look = V(c.x, .7, c.z); fov = 52; }
+  } else if (t < L('04').start) {
+    const a = W_('03', /person/i), b = W_('03', /camera/i), c = W_('03', /photo/i);
+    if (t < a) { set = A; const c = shy.root.position; pos = V(c.x + 1.9, 1.6, c.z + .3); look = V(c.x, .6, c.z); fov = 50; }   // harmless: crouched, facing the wall
+    else if (t < b) { set = B; pos = V(40 + .4, 1.5, -.6); look = V(40, 1.3, -3.5); fov = 50; }  // looking down through the window
+    else if (t < c) { set = B; pos = V(40 + 1.8, 2.1, -1.2); look = V(40 + 2.6, 2.4, -2.2); fov = 40; }  // the covered camera
+    else { set = B; pos = V(40 - 1.1, 1.25, -1.35); look = V(40 - 1.3, .82, -1.65); fov = 40; }  // the photo
+  } else if (t < L('05').start) {
+    const a = W_('04', /monitors/i);
+    set = B; if (t < a) { pos = V(40 + 2.3, 1.9, 2.0); look = V(40 - .5, .8, -1.6); fov = 58; } else { pos = V(40 + 1.1, 1.35, -1.0); look = V(40 - .2, 1.15, -2.05); fov = 46; }
+  } else if (t < L('06').start) { set = B; pos = V(40 + .9, 1.75, .1); look = V(40 + .3, 1.2, -2.05); fov = 46; }  // over his shoulder; the monitor flickers
+  else if (t < L('07').start) {
+    set = B;
+    if (t < seen + .6) { const k = clamp((t - L('06').start) / (seen - L('06').start)); pos = V(40 + .5, 1.21, lerp(-1.1, -1.55, k)); look = V(40 + .5, 1.21, -2.05); fov = 40; glitch = t >= seen ? .8 : .25; }
+    else { pos = hp.clone().add(V(-.05, 0, -.62)); look = hp.clone(); fov = 38; }   // his face
+  } else if (t < L('08').start) { set = A; const c = shy.root.position, k = prog('07'); pos = V(c.x + 1.6, 1.0 + k * .4, c.z + 1.6); look = V(c.x, 1.0, c.z); fov = 50; shake = .01; burn = .3; }
+  else if (t < L('09').start) {
+    const a = W_('08', /knows/i);
+    if (t < a) { set = A; const c = shy.root.position; pos = V(c.x - .9, 2.0, c.z + 1.2); look = V(c.x, 1.3, c.z); fov = 44; shake = .012; burn = .35; }
+    else { set = B; pos = hp.clone().add(V(.1, 0, -.55)); look = hp.clone(); fov = 36; burn = .4; }
+  } else if (t < L('10').start) {
+    const a = W_('09', /doors/i);
+    if (t < run0) { set = B; pos = V(40 + 2.3, 2.2, 2.0); look = V(40, 1, -1); fov = 60; }
+    else { set = C; const z = me.root.position.z; pos = V(80 + .5, 1.35, z - 3.2); look = V(80, 1.1, z); fov = 54; shake = .01; }
+  } else if (t < L('11').start) { set = A; pos = V(4, 1.6, 9); look = V(0, 1.8, 1); fov = 58; shake = t > breach ? .03 * Math.exp(-(t - breach) * 2) : 0; }
+  else if (t < L('12').start) {
+    set = C; const z = me.root.position.z, a = W_('11', /doors/i), k = (t - L('11').start);
+    if (t < a) { pos = V(80 - .6, 1.5, z - 3); look = V(80, 1.1, z); fov = 54; shake = .012; }
+    else { pos = V(80 + .3, 1.0, z + 5); look = V(80, 1.2, z + 14); fov = 50; }   // behind him: the corridor, and something pale far down it
+  } else {
+    set = C; const u = t - L('12').start;
+    pos = hp.clone(); const turned = ease((u - .8) / .8); look = hp.clone().add(V(0, -.05, lerp(-2, 2, turned))); fov = 46; burn = .5 + .3 * clamp(u / 4);
+    shake = .004;
+    if (t >= tEnd - .25) { shy.root.position.set(80, 0, me.root.position.z + 1.2); shy.root.rotation.y = Math.PI; pose(shy, [{ clip: 'Zombie_Idle_Loop', t0: tEnd - .25 }], t); stretch(); shy.root.visible = true; }
+    else shy.root.visible = false;
+  }
+  startDoor.visible = t < L('11').start;
+  shy.root.visible = shy.root.visible && ((set === A && (inCube || t < L('11').start)) || (set === C && !inCube));
+  me.root.visible = set === B || set === C;
+  SHOW(set);
+  pos.add(V(Math.sin(t * 13) * shake, Math.sin(t * 9.7) * shake, 0));
+  cam.fov = fov; cam.updateProjectionMatrix(); cam.position.copy(pos); cam.lookAt(look);
+  const lunge = t >= tEnd - .25 && t < tEnd + .1;
+  retro.u.burn.value = lunge ? .9 : burn; retro.render(scene, cam, t);
+  // ---- HUD and overlays
+  let hud = '', over = '';
+  if (t < L('02').start) hud = title('SCP-096', 'EUCLID') + T('NARRATED BY', 80, 330, 24, .55, 300, 8) + T('D-4172', 80, 372, 32, .9, 300, 10, 'start', '#f0a060') + T('ASSIGNMENT 2', 80, 414, 24, .55, 300, 8);
+  else if (S(L('02').start, L('03').start)) { if (t > W_('02', /tall/i) - .3) hud += T('HEIGHT', 80, 330, 28, .7, 300, 8) + T('2.38 m', 80, 390, 48, 1, 200, 8); if (t > W_('02', /arms/i) - .2) hud += T('ARMS', 80, 460, 28, .7, 300, 8) + T('TOO LONG', 80, 515, 36, 1, 300, 8, 'start', '#ff8080'); }
+  else if (S(L('03').start, L('04').start)) { const items = [['IN PERSON', /person/i], ['ON CAMERA', /camera/i], ['IN A PHOTO', /photo/i]]; items.forEach(([w, re], i) => { if (t >= W_('03', re) - .1) hud += T(w, 80, 330 + i * 55, 32, .85, 300, 8, 'start', '#ff8080'); }); if (hud) hud = T('TRIGGER', 80, 280, 24, .55, 300, 8) + hud; }
+  else if (S(L('04').start, L('05').start)) hud = T('MONITORS', 80, 330, 28, .7, 300, 8) + T('OFF', 80, 385, 40, 1, 300, 8, 'start', '#9fe0a0') + T('CAMERAS', 80, 450, 28, .7, 300, 8) + T('COVERED', 80, 505, 40, 1, 300, 8, 'start', '#9fe0a0');
+  else if (S(L('05').start, seen)) hud = T('MONITOR 3', 80, 330, 28, .7, 300, 8) + T('SIGNAL', 80, 385, 40, blink(t), 300, 8, 'start', '#ffd080');
+  else if (S(seen, run0)) { hud = T('VISUAL CONTACT', 80, 330, 28, .7, 300, 8) + T('CONFIRMED', 80, 385, 40, blink(t), 300, 8, 'start', '#ff8080');
+    if (t >= L('07').start) hud += T('SCP-096', 80, 460, 28, .7, 300, 8) + T('DISTRESSED', 80, 515, 36, 1, 300, 8, 'start', '#ff8080');
+    if (t >= W_('08', /knows/i)) hud += T('TARGET', 80, 590, 28, .7, 300, 8) + T('D-4172', 80, 645, 40, 1, 300, 8, 'start', '#f0a060'); }
+  else if (t >= run0 && t < tEnd) {
+    const d = t < breach ? 520 : t < L('12').start ? Math.max(20, 520 - (t - breach) * 70) : Math.max(0, 20 - (t - L('12').start) * 6);
+    hud = T('LOCKDOWN', 80, 330, 28, blink(t, 2), 300, 8, 'start', '#ff8080') + T('SCP-096 DISTANCE', 80, 400, 26, .7, 300, 8) + T(Math.round(d) + ' m', 80, 460, 52, 1, 200, 8, 'start', '#ff8080');
+  }
+  if (alarm && t < tEnd) over += `<rect width="${W}" height="${H}" fill="#ff1a10" opacity="${blinkA > .5 ? .06 : 0}"/>`;
+  if (glitch) for (let i = 0; i < 6; i++) { const y = (Math.floor(t * 30) * 137 + i * 331) % H; over += `<rect x="0" y="${y}" width="${W}" height="${8 + (i * 7) % 30}" fill="${i % 2 ? '#d0e0ff' : '#000'}" opacity="${.12 * glitch}"/>`; }
+  if (lunge) over += `<rect x="300" y="560" width="480" height="200" fill="#b01c1c"/><text x="540" y="685" text-anchor="middle" font-family="Inter" font-weight="700" font-size="64" fill="#fff" letter-spacing="6">DO NOT VIEW</text>`;
+  if (t >= tEnd + .1) { over += `<rect width="${W}" height="${H}" fill="#000"/>`; hud = ''; }
+  let g = DEFS(t) + `<rect width="${W}" height="${H}" fill="url(#vig)" opacity=".45"/>` + over + hud;
+  if (!lunge) g += caption(t);
+  g += endCard(t, TL.cardAt);
+  document.getElementById('c').innerHTML = g;
+};
+</script></body></html>
