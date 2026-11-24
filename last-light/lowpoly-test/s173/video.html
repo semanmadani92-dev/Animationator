@@ -1,0 +1,170 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden} #g{position:absolute;left:0;top:0;width:1080px;height:1920px} #c{position:absolute;left:0;top:0}</style>
+<script>var module = { exports: {} }, exports = module.exports;</script>
+<script src="../three.cjs"></script>
+<script>const THREE = module.exports;</script>
+<script src="../ll.js"></script></head><body>
+<canvas id="g" width="1080" height="1920"></canvas>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// SCP-173, low-poly 3D test. Original statue design (concrete slab, rebar, crude spray-painted face).
+const LOW_W = 360, LOW_H = 640;  // internal resolution, upscaled with nearest-neighbour for the chunky look
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('g'), antialias: false, preserveDrawingBuffer: true });
+renderer.setSize(1080, 1920, false);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.BasicShadowMap;
+const rt = new THREE.WebGLRenderTarget(LOW_W, LOW_H, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+const scene3 = new THREE.Scene();
+scene3.background = new THREE.Color(0x030304);
+scene3.fog = new THREE.FogExp2(0x030304, 0.11);
+const cam = new THREE.PerspectiveCamera(58, 1080 / 1920, 0.05, 60);
+
+let seed = 7; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const mat = (c, o = {}) => { const { vc, ...rest } = o; return new THREE.MeshLambertMaterial(Object.assign({ color: c, flatShading: true, vertexColors: !!vc }, rest)); };
+function jitter(g, a) {  // roughen a mesh's vertices (shared positions move together so faces stay closed)
+  g = g.toNonIndexed ? g : g; const p = g.attributes.position, map = {};
+  for (let i = 0; i < p.count; i++) {
+    const k = [p.getX(i), p.getY(i), p.getZ(i)].map(v => Math.round(v * 1000) + 0).join();
+    if (!map[k]) map[k] = [(R() - .5) * a, (R() - .5) * a, (R() - .5) * a];
+    p.setXYZ(i, p.getX(i) + map[k][0], p.getY(i) + map[k][1], p.getZ(i) + map[k][2]);
+  }
+  g.computeVertexNormals(); return g;
+}
+function faceTint(g, base, v) {  // per-face colour variation, like a hand-painted low-poly texture
+  g = g.index ? g.toNonIndexed() : g; const n = g.attributes.position.count, c = new Float32Array(n * 3), col = new THREE.Color(base);
+  for (let f = 0; f < n; f += 3) { const k = 1 + (R() - .5) * v; for (let j = 0; j < 3; j++) { c[(f + j) * 3] = col.r * k; c[(f + j) * 3 + 1] = col.g * k; c[(f + j) * 3 + 2] = col.b * k; } }
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g;
+}
+const add = (m, x = 0, y = 0, z = 0, sh = true) => { m.position.set(x, y, z); m.castShadow = sh; m.receiveShadow = true; scene3.add(m); return m; };
+
+// --- the cell: 8 m wide, 4 m high, 12 m deep
+const floorG = faceTint(new THREE.PlaneGeometry(8, 12, 8, 12), 0x5a5853, .35); floorG.rotateX(-Math.PI / 2);
+add(new THREE.Mesh(floorG, mat(0xffffff, { vc: true })), 0, 0, 0, false);
+const ceil = faceTint(new THREE.PlaneGeometry(8, 12, 4, 6), 0x2a2a2a, .3); ceil.rotateX(Math.PI / 2); add(new THREE.Mesh(ceil, mat(0xffffff, { vc: true })), 0, 4, 0, false);
+for (const [w, rx, ry, x, z] of [[12, 0, Math.PI / 2, -4, 0], [12, 0, -Math.PI / 2, 4, 0], [8, 0, 0, 0, -6], [8, 0, Math.PI, 0, 6]]) {
+  const g = faceTint(jitter(new THREE.PlaneGeometry(w, 4, w, 4), .06), 0x6d6a64, .3);
+  const m = add(new THREE.Mesh(g, mat(0xffffff, { vc: true })), x, 2, z, false); m.rotation.y = ry;
+}
+// wall panels / seams
+for (let i = -5; i <= 5; i += 2.5) for (const x of [-3.98, 3.98]) { const s = add(new THREE.Mesh(new THREE.BoxGeometry(.04, 4, .08), mat(0x3a3936)), x, 2, i, false); }
+// heavy door in the back wall
+add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.9, .2), mat(0x2b2d30)), 0, 1.45, -5.92, false);
+add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.6, .12), mat(0x45484d)), 0, 1.3, -5.8, false);
+add(new THREE.Mesh(new THREE.BoxGeometry(.5, .14, .06), mat(0x1a1b1d)), 0, 2.2, -5.72, false);
+const hazard = add(new THREE.Mesh(new THREE.BoxGeometry(1.6, .12, .03), mat(0x8a6a1a)), 0, 2.75, -5.75, false);
+// floor stains (dark brown, irregular discs)
+for (let i = 0; i < 9; i++) {
+  const g = jitter(new THREE.CircleGeometry(.25 + R() * .6, 6), .12); g.rotateX(-Math.PI / 2);
+  add(new THREE.Mesh(g, mat(0x2a1510, { transparent: true, opacity: .75 })), (R() - .5) * 5, .01 + i * .001, -4 + R() * 7, false);
+}
+// drain grate
+add(new THREE.Mesh(new THREE.BoxGeometry(.6, .02, .6), mat(0x1c1c1c)), 1.2, .01, .5, false);
+
+// --- hanging lamp over the statue
+const lampG = new THREE.Group(); scene3.add(lampG); lampG.position.set(0, 3.2, -1.5);
+const shade = new THREE.Mesh(new THREE.ConeGeometry(.45, .35, 8, 1, true), mat(0x2d2f2c, { side: THREE.DoubleSide })); shade.position.y = .1; lampG.add(shade);
+const bulb = new THREE.Mesh(new THREE.IcosahedronGeometry(.1, 0), new THREE.MeshBasicMaterial({ color: 0xfff1c8 })); lampG.add(bulb);
+const cord = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, .8, 4), mat(0x111111)); cord.position.y = .65; lampG.add(cord);
+const spot = new THREE.SpotLight(0xffe6b0, 60, 14, .78, .45, 1.6); spot.position.set(0, 3.15, -1.5); spot.castShadow = true;
+spot.shadow.mapSize.set(512, 512); spot.shadow.bias = -.002; spot.target.position.set(0, 0, -1.2); scene3.add(spot, spot.target);
+const fillL = new THREE.PointLight(0x9fb2d8, 9, 12, 1.2); fillL.position.set(.6, 1.9, 4.6); scene3.add(fillL);  // cold light from behind you
+const amb = new THREE.HemisphereLight(0x46506a, 0x0a0806, .7); scene3.add(amb);
+// light cone (fake volumetric)
+const beam = new THREE.Mesh(new THREE.ConeGeometry(2.0, 3.1, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe2a8, transparent: true, opacity: .035, side: THREE.DoubleSide, depthWrite: false, fog: false }));
+beam.position.set(0, 1.55, -1.5); scene3.add(beam);
+
+// --- SCP-173 (original design)
+function buildStatue() {
+  const g = new THREE.Group(), conc = new THREE.Color(0xa8a296);
+  const body = new THREE.Mesh(faceTint(jitter(new THREE.CylinderGeometry(.34, .42, 1.55, 7, 3), .07), conc, .35), mat(0xffffff, { vc: true }));
+  body.position.y = .78; g.add(body);
+  const neck = new THREE.Mesh(faceTint(jitter(new THREE.CylinderGeometry(.18, .26, .2, 6), .03), conc, .3), mat(0xffffff, { vc: true })); neck.position.y = 1.62; g.add(neck);
+  const head = new THREE.Group(); head.position.y = 1.9; g.add(head);
+  const hg = faceTint(jitter(new THREE.CylinderGeometry(.27, .3, .42, 7, 2), .045), conc, .3);
+  head.add(new THREE.Mesh(hg, mat(0xffffff, { vc: true })));
+  // spray paint: green eye rings + drips, red jagged mouth, all on the front (+z)
+  const green = new THREE.MeshBasicMaterial({ color: 0x2f7a3c, fog: true }), red = new THREE.MeshBasicMaterial({ color: 0x9a2020, fog: true });
+  for (const [x, r] of [[-.1, .075], [.11, .062]]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, .02, 3, 9), green); ring.position.set(x, .07, .285); head.add(ring);
+    const drip = new THREE.Mesh(new THREE.BoxGeometry(.016, .14, .01), green); drip.position.set(x - .02, -.04, .29); head.add(drip);
+  }
+  const mouth = new THREE.Shape(); mouth.moveTo(-.14, -.08);
+  [[-.1, -.05], [-.06, -.1], [-.02, -.05], [.03, -.11], [.07, -.05], [.12, -.09], [.13, -.07], [.07, -.03], [.03, -.08], [-.02, -.03], [-.06, -.08], [-.1, -.03]].forEach(([x, y]) => mouth.lineTo(x, y));
+  const mm = new THREE.Mesh(new THREE.ShapeGeometry(mouth), red); mm.position.z = .3; head.add(mm);
+  // arm stubs with rebar
+  for (const sx of [-1, 1]) {
+    const arm = new THREE.Mesh(faceTint(jitter(new THREE.BoxGeometry(.5, .16, .2), .03), conc, .3), mat(0xffffff, { vc: true }));
+    arm.position.set(sx * .5, 1.28, .02); arm.rotation.z = sx * -.45; g.add(arm);
+    for (let k = 0; k < 2; k++) { const rb = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .22, 4), mat(0x7a3f1f)); rb.position.set(sx * (.78 + k * .03), 1.13 + k * .05, .02 + k * .05); rb.rotation.z = sx * (1.1 + k * .3); g.add(rb); }
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  g.userData.head = head; return g;
+}
+const statue = buildStatue(); scene3.add(statue);
+
+// --- you: low-poly hands/flashlight not needed; we are the camera.
+
+// --- post pass: nearest-neighbour upscale + ordered dither + colour steps + vignette + grain
+const post = new THREE.ShaderMaterial({
+  uniforms: { tex: { value: rt.texture }, t: { value: 0 }, burn: { value: 0 }, flash: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+  fragmentShader: `uniform sampler2D tex; uniform float t, burn, flash; varying vec2 vUv;
+    float bayer(vec2 p){ int x=int(mod(p.x,4.)), y=int(mod(p.y,4.)); int i=x+y*4;
+      float m[16]; m[0]=0.;m[1]=8.;m[2]=2.;m[3]=10.;m[4]=12.;m[5]=4.;m[6]=14.;m[7]=6.;m[8]=3.;m[9]=11.;m[10]=1.;m[11]=9.;m[12]=15.;m[13]=7.;m[14]=13.;m[15]=5.;
+      for(int k=0;k<16;k++){ if(k==i) return m[k]/16.; } return 0.; }
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)) + t*7.) * 43758.5453); }
+    void main(){ vec2 px = floor(vUv * vec2(${LOW_W}., ${LOW_H}.));
+      vec3 c = texture2D(tex, (px + .5) / vec2(${LOW_W}., ${LOW_H}.)).rgb;
+      c = pow(c, vec3(.9)); float lv = 20.; c = floor(c * lv + bayer(px)) / lv;
+      vec2 d = vUv - .5; float v = 1. - smoothstep(.25, .78, length(d * vec2(1., 1.25)));
+      c *= mix(.25, 1., v); c = mix(c, c * vec3(1.25, .45, .4), burn * (1. - v * .7));
+      c += (h(px) - .5) * .05; c += flash;
+      gl_FragColor = vec4(c, 1.); }`
+});
+const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), post); const postScene = new THREE.Scene(); postScene.add(quad);
+const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+function scene(t) {
+  const L = id => ln(id), fl = wordT('08', /flicker/i), tEnd = L('11').end;
+  // statue positions: it only moves while the light is out
+  const jumps = [[0, 0, -1.6, 0, 0], [fl + .3, .4, -.4, .25, .08], [L('09').end + .3, -.3, .7, -.2, -.12], [L('11').start + 1.7, .15, 1.6, .1, .18], [tEnd + .15, 0, 2.95, 0, .12]];
+  let st = jumps[0]; for (const j of jumps) if (t >= j[0]) st = j;
+  statue.position.set(st[1], 0, st[2]); statue.rotation.y = st[3]; statue.userData.head.rotation.z = st[4];
+  // lamp: steady hum, then flicker after "flicker"
+  let on = 1;
+  if (t >= fl && t < tEnd + .15) { const u = t - fl; on = (u < 1.1 ? (Math.floor(u * 14) % 3 !== 0 ? 1 : 0) : ((u % .9) < .09 ? 0 : 1)); }
+  for (const j of jumps.slice(1, 4)) if (t >= j[0] - .12 && t < j[0] + .1) on = 0;  // always dark at the moment it moves
+  const sway = Math.sin(t * .9) * .05; lampG.rotation.z = sway; spot.position.x = Math.sin(sway) * -.5;
+  spot.intensity = 60 * on; bulb.material.color.setHex(on ? 0xfff1c8 : 0x1a1814); beam.material.opacity = .035 * on; fillL.intensity = on ? 9 : 1.2;
+  // camera
+  let cz, cy = 1.62, cx = 0, look = new THREE.Vector3(0, 1.4, -1.6), burn = 0, flash = 0;
+  if (t < L('08').start) { const k = ease(t / L('08').start); cz = lerp(5.4, 3.6, k); cy = lerp(2.3, 1.62, k); }
+  else { const k = clamp((t - L('08').start) / (tEnd - L('08').start)); cz = 3.6 + k * .2; burn = k * .8; look.set(statue.position.x * .5, 1.55, statue.position.z); }
+  const hand = clamp((t - L('08').start) / 3); cx += Math.sin(t * 2.3) * .03 * hand; cy += Math.sin(t * 3.1) * .02 * hand;
+  cam.position.set(cx, cy, cz); cam.lookAt(look);
+  // render
+  renderer.setRenderTarget(rt); renderer.render(scene3, cam);
+  post.uniforms.t.value = t; post.uniforms.burn.value = burn; post.uniforms.flash.value = flash;
+  renderer.setRenderTarget(null); renderer.render(postScene, postCam);
+  // HUD / overlays (SVG, crisp)
+  let hud = '', over = '';
+  if (t < L('08').start) hud = title('SCP-173', 'EUCLID') + (t > 1.8 ? T('LINE OF SIGHT', 80, 330, 30, .7, 300, 8) + T('MAINTAINED', 80, 380, 30, 1, 300, 8, 'start', '#9fe0a0') : '');
+  else if (t < tEnd + .15) { const d = Math.hypot(statue.position.z - cz, statue.position.x); hud = T('DISTANCE', 80, 330, 30, .7, 300, 8) + T(d.toFixed(1) + ' m', 80, 395, 52, 1, 200, 8, 'start', d < 2.5 ? '#ff8080' : '#e8ecf5'); }
+  const scare = t >= tEnd + .15 && t < tEnd + .5;  // a split-second of it right in front of you
+  if (scare) { cam.position.set(0, 1.8, 4.55); cam.lookAt(0, 1.85, 2.9); post.uniforms.burn.value = .9; renderer.setRenderTarget(rt); renderer.render(scene3, cam); renderer.setRenderTarget(null); renderer.render(postScene, postCam); }
+  if (t >= L('11').start && !scare) {  // eyelids closing
+    const k = clamp((t - L('11').start) / (tEnd - L('11').start + .2)), lid = 960 * ease(k) * (.75 + .25 * Math.abs(Math.sin(t * 6)));
+    over += `<rect width="${W}" height="${lid}" fill="#000"/><rect y="${H - lid}" width="${W}" height="${lid}" fill="#000"/>`;
+  }
+  if (t >= tEnd + .15 && !scare) { over += `<rect width="${W}" height="${H}" fill="#000"/>`; hud = ''; }
+  if (scare) { hud = ''; spot.intensity = 60; }
+  return { hud, over, noCaption: !on || scare };
+}
+function draw(t) {
+  tNow = t; const sc = scene(t);
+  let g = DEFS(t) + `<rect width="${W}" height="${H}" fill="url(#vig)" opacity=".5"/>` + (sc.over || '') + (sc.hud || '');
+  if (!sc.noCaption) g += caption(t);
+  g += endCard(t, TL.cardAt);
+  document.getElementById('c').innerHTML = g;
+}
+</script></body></html>
