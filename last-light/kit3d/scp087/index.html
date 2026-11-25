@@ -1,0 +1,182 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden} #g{position:absolute;left:0;top:0;width:1080px;height:1920px} #c{position:absolute;left:0;top:0}</style>
+<script src="../ll.js"></script></head><body>
+<canvas id="g" width="1080" height="1920"></canvas>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script type="importmap">{"imports":{"three":"../three.module.js","three/addons/":"../jsm/"}}</script>
+<script type="module">
+// SCP-087, low-poly 3D, told by D-4172. Unlit stairs: the only light is his flashlight.
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { THREE, load, loadMannequins, makeHuman, pose, makeRetro, makeRenderer, setFear, bodyFear } from '../kit3d.js';
+const renderer = makeRenderer(document.getElementById('g')), retro = makeRetro(renderer, 450, 800);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x000000, .095);
+const cam = new THREE.PerspectiveCamera(52, 1080 / 1920, .03, 60);
+let seed = 37; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const lam = (c, o = {}) => new THREE.MeshLambertMaterial(Object.assign({ color: c, flatShading: true }, o));
+const shadowy = o => { o.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } }); return o; };
+const put = (parent, o, x = 0, y = 0, z = 0, ry = 0) => { o.position.set(x, y, z); o.rotation.y = ry; parent.add(shadowy(o)); return o; };
+const box = (w, h, d, c, o) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), lam(c, o));
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+function canvasTex(w, h, paint) { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; paint(cv.getContext('2d'), w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.userData.cv = cv; return t; }
+
+// =========== the stairwell ===========
+const RISE = .18, RUN = .23, NS = 13, FL = RUN * NS, FD = RISE * NS, LANE = .7, SW = 1.25, NF = 34;
+const ST = new THREE.Group(); scene.add(ST);
+const dirOf = k => (k % 2 === 0 ? -1 : 1), laneOf = k => (k % 2 === 0 ? -LANE : LANE), z0Of = k => (k % 2 === 0 ? 0 : -FL);
+{ const parts = [];
+  for (let k = 0; k < NF; k++) for (let st = 0; st < NS; st++) {
+    const g = new THREE.BoxGeometry(SW, .5, RUN).toNonIndexed(); g.translate(laneOf(k), -FD * k - RISE * (st + 1) - .25, z0Of(k) + dirOf(k) * RUN * (st + .5));
+    const v = .5 + R() * .1, n = g.attributes.position.count, c = new Float32Array(n * 3); for (let i = 0; i < n; i++) c.set([v, v * .98, v * .95], i * 3);
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3)); g.deleteAttribute('uv'); parts.push(g);
+  }
+  const m = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+  m.receiveShadow = true; m.castShadow = true; ST.add(m); }
+// landings (semicircular), walls, divider, rails, stencilled numbers
+const labels = [];
+for (let k = -1; k < NF; k++) {
+  const y = -FD * (k + 1), atFar = (k + 1) % 2 === 1;  // the landing after flight k sits at the far end (z = -FL) when k is even
+  const zc = k < 0 ? 0 : (k % 2 === 0 ? -FL : 0), out = zc === 0 ? 1 : -1;
+  put(ST, box(3, .3, .4, 0x6a6864), 0, y - .15, zc + out * .2);
+  const half = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, .3, 12, 1, false, out > 0 ? -Math.PI / 2 : Math.PI / 2, Math.PI), lam(0x6a6864)); put(ST, half, 0, y - .15, zc + out * .4);
+  // curved end wall around the landing, with the number
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.55, 3.2, 12, 1, true, out > 0 ? -Math.PI / 2 : Math.PI / 2, Math.PI), lam(0x3a3936, { side: THREE.BackSide })); put(ST, wall, 0, y + 1.4, zc + out * .4);
+  const tex = canvasTex(128, 64, () => {}); const lab = new THREE.Mesh(new THREE.PlaneGeometry(.6, .3), new THREE.MeshLambertMaterial({ map: tex, transparent: true }));
+  put(ST, lab, 0, y + 1.6, zc + out * 1.9); lab.rotation.y = out > 0 ? Math.PI : 0; lab.userData.k = k + 1; lab.userData.tex = tex; labels.push(lab);
+}
+for (const sx of [-1, 1]) put(ST, box(.2, FD * NF + 6, FL + .9, 0x353431), sx * (SW + .2), -FD * NF / 2 + 1.5, -FL / 2);  // side walls
+put(ST, box(.12, FD * NF + 6, FL - .1, 0x2e2d2b), 0, -FD * NF / 2 + 1.5, -FL / 2);  // the divider between flights
+for (let k = 0; k < NF; k++) { const len = Math.hypot(FL, FD), r = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, len, 5), lam(0x5a4a3a)); r.rotation.x = Math.atan2(FL, FD) * dirOf(k) * -1 + (dirOf(k) > 0 ? 0 : 0);
+  const sx = laneOf(k) + Math.sign(laneOf(k)) * (SW / 2 - .05); put(ST, r, sx, -FD * k - FD / 2 + .9, z0Of(k) + dirOf(k) * FL / 2); r.rotation.set(dirOf(k) < 0 ? -(Math.PI / 2 - Math.atan2(FD, FL)) : (Math.PI / 2 - Math.atan2(FD, FL)), 0, 0); }
+// scuffs and debris
+for (let i = 0; i < 70; i++) { const k = Math.floor(R() * NF), s = Math.floor(R() * NS); put(ST, box(.05 + R() * .12, .02, .04 + R() * .08, 0x1c1b1a), laneOf(k) + (R() - .5) * 1, -FD * k - RISE * (s + 1) + .01, z0Of(k) + dirOf(k) * RUN * (s + .5)); }
+function relabel(offset) { for (const l of labels) { const n = l.userData.k + offset, x = l.userData.tex.userData.cv.getContext('2d'); x.clearRect(0, 0, 128, 64); x.fillStyle = 'rgba(200,196,186,.55)'; x.font = 'bold 44px Inter, Arial'; x.textAlign = 'center'; x.fillText(String(Math.max(0, n)).padStart(2, '0'), 64, 48); l.userData.tex.needsUpdate = true; } }
+let lastOff = null;
+// the top landing: the inside of the closet door, padded with foam
+const door = new THREE.Group(); put(ST, door, 0, 0, 1.92);
+put(door, box(1.0, 2.1, .08, 0x3b3d40), 0, 1.05, 0);
+for (let a = 0; a < 3; a++) for (let b = 0; b < 6; b++) put(door, box(.31, .33, .1, 0x5a564c), -.32 + a * .32, .2 + b * .34, -.06);
+const knob = put(door, new THREE.Mesh(new THREE.SphereGeometry(.04, 6, 4), lam(0x8a8a86)), .36, 1.0, -.14);
+put(ST, box(3, 3, .2, 0x353431), 0, 1.5, 2.05);
+// SCP-087-1: a pale face; white eyes with no pupils; no nose; no mouth
+const face = new THREE.Group(); scene.add(face);
+{ const g = new THREE.SphereGeometry(.5, 10, 8); const f = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: 0xdedbd2, flatShading: true, emissive: 0x5a5852 })); f.scale.set(.42, .58, .3); face.add(f);
+  for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.5, 8, 6), new THREE.MeshBasicMaterial({ color: 0xf8f8f6 })); e.scale.set(.09, .05, .03); e.position.set(sx * .09, .05, .145); face.add(e); } }
+face.visible = false;
+
+// =========== the campus hallway outside (x = 30) ===========
+const HW = new THREE.Group(); HW.position.set(30, 0, 0); scene.add(HW);
+put(HW, box(3.2, .1, 14, 0x6a6660), 0, -.05, 0); put(HW, box(3.2, .1, 14, 0xb8b4aa), 0, 3.0, 0);
+put(HW, box(.15, 3, 14, 0x9a958a), -1.6, 1.5, 0); put(HW, box(.15, 3, 14, 0x9a958a), 1.6, 1.5, 0);
+for (let z = -6; z <= 6; z += 1) put(HW, box(3.2, .004, .02, 0x4a4640), 0, .003, z);
+for (let i = 0; i < 9; i++) { const lk = box(.45, 1.8, .45, i % 3 === 1 ? 0x4a6a8a : 0x55759a); put(HW, lk, 1.35, .9, 4.6 - i * .48); put(HW, box(.02, .3, .02, 0x222222), 1.12, 1.4, 4.6 - i * .48 + .12); }
+put(HW, box(.04, .9, 1.4, 0xb08a5a), -1.52, 1.5, 3.2);  // notice board
+for (let i = 0; i < 5; i++) put(HW, box(.01, .2 + R() * .15, .22, [0xf0ead8, 0xf3d36a, 0xa8d0f0][i % 3]), -1.5, 1.4 + R() * .4, 2.7 + i * .22);
+// the closet door
+const cdoor = new THREE.Group(); put(HW, cdoor, -1.5, 0, -1.5, Math.PI / 2);
+put(cdoor, box(1.0, 2.1, .06, 0x6b5e4c), 0, 1.05, 0); put(cdoor, box(1.16, 2.2, .04, 0x3a3530), 0, 1.1, -.03);
+put(cdoor, new THREE.Mesh(new THREE.SphereGeometry(.04, 6, 4), lam(0xb0a890)), .38, 1.0, .06);
+{ const t = canvasTex(256, 64, (x) => { x.fillStyle = '#d8d4c8'; x.fillRect(0, 0, 256, 64); x.fillStyle = '#222'; x.font = 'bold 34px Inter, Arial'; x.textAlign = 'center'; x.fillText('JANITORIAL', 128, 44); });
+  put(cdoor, new THREE.Mesh(new THREE.PlaneGeometry(.5, .13), new THREE.MeshLambertMaterial({ map: t })), 0, 1.65, .035); }
+const hwLights = [-4, 1, 5].map(z => { const l = new THREE.PointLight(0xeef2ff, 7, 7, 1.4); l.position.set(0, 2.8, z); HW.add(l); put(HW, box(1.0, .04, .2, 0xf4f6ff), 0, 2.96, z); return l; });
+const hwHemi = new THREE.HemisphereLight(0x9aa4b8, 0x2a2620, .6); HW.add(hwHemi);
+// the stairwell is black: only a faint ambient so silhouettes read
+const stAmb = new THREE.HemisphereLight(0x3a4a66, 0x0a0a0a, .4); ST.add(stAmb);
+
+// =========== D-4172 and his flashlight ===========
+const lib = await loadMannequins(); const me = makeHuman(lib, { number: 'D-4172' }); scene.add(shadowy(me.root));
+const torchMesh = new THREE.Mesh(new THREE.CylinderGeometry(.024, .03, .22, 6), lam(0x1a1a1a)); me.bone('hand_r').add(torchMesh); torchMesh.position.set(0, .1, .03); torchMesh.rotation.set(Math.PI / 2, 0, 0);
+const beam = new THREE.SpotLight(0xfff1d8, 0, 11, .55, .45, 1.1); beam.castShadow = true; beam.shadow.mapSize.set(1024, 1024); beam.shadow.bias = -.002; scene.add(beam, beam.target);
+const bounce = new THREE.PointLight(0xffe6c0, 0, 4.5, 1.3); scene.add(bounce);  // where the beam lands
+const camFill = new THREE.PointLight(0xffe8cc, 0, 2.5, 1.5); scene.add(camFill);  // flashlight bounce on faces in close-ups
+const cone = new THREE.Mesh(new THREE.ConeGeometry(.9, 3.2, 14, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff1d0, transparent: true, opacity: .03, depthWrite: false, side: THREE.DoubleSide })); scene.add(cone);
+
+// path along the stairs: s counts flights; each flight is followed by a turn on the landing (0.35 of a flight)
+function along(s) {
+  const T = 1.35, seg = Math.floor(s / T), lc = s - seg * T;
+  if (s < 0) return { p: V(-LANE, 0, .6 + -s * 1.0), dir: V(0, 0, -1) };
+  if (lc < 1) { const k = seg; return { p: V(laneOf(k), -FD * k - FD * lc, z0Of(k) + dirOf(k) * FL * lc), dir: V(0, -FD / FL, dirOf(k)).normalize() }; }
+  const w = (lc - 1) / .35, k = seg, zc = k % 2 === 0 ? -FL : 0, out = k % 2 === 0 ? -1 : 1, a = Math.PI * w;
+  return { p: V(-Math.cos(a) * LANE * (k % 2 === 0 ? 1 : -1), -FD * (k + 1), zc + out * .55 * Math.sin(a)), dir: V(Math.sin(a) * (k % 2 === 0 ? 1 : -1), 0, out * Math.cos(a)).normalize() };
+}
+
+window.ready = true;
+window.draw = function (t) {
+  tNow = t; const L = id => ln(id), W_ = (id, re) => wordT(id, re), S = (a, b) => t >= a && t < b;
+  const tEnd = L('12').end, open = W_('02', /door/i), runT = L('10').start, doorT = L('11').start, knockT = W_('12', /knock/i), outT = W_('12', /weeks/i) - .3;
+  const fiftyT = L('07').start, hundredT = W_('07', /hundred/i), stopT = L('08').start, faceT = W_('09', /face/i) - .25;
+  // ---- where he is on the stairs (s, in flights)
+  const RATE = 1 / 3.4;
+  let s, segs = [{ clip: 'Walk_Loop', t0: 0 }], off = 0, fear = .15, tears = 0, flinch = 0, place = 'stairs', turnBack = false;
+  const sStop = Math.floor((2 + (stopT - fiftyT) * RATE) / 1.35) * 1.35 + .12;  // he stops at the top of a flight
+  if (t < open + .6) { place = 'hall'; segs = [{ clip: 'Idle_Loop', t0: -9 }]; }
+  else if (t < fiftyT) { s = -1.2 + (t - open - .6) * RATE * 1.15; if (t >= L('05').start && t < L('05').end + .3) { segs = [{ clip: 'Walk_Loop', t0: 0 }, { clip: 'Idle_Torch_Loop', t0: L('05').start }]; s = -1.2 + (L('05').start - open - .6) * RATE * 1.15; } }
+  else if (t < stopT) { s = Math.min(sStop, 2 + (t - fiftyT) * RATE); off = t < hundredT ? 47 : 97; }
+  else if (t < runT) { s = sStop; off = 97; segs = [{ clip: 'Idle_Torch_Loop', t0: stopT }]; }
+  else if (t < doorT) { s = Math.max(.15, sStop - (t - runT) * .9); off = 97 - Math.floor((t - runT) * 9); segs = [{ clip: 'Sprint_Loop', t0: runT, speed: 1.1 }]; turnBack = true; }
+  else { s = .05; off = 0; segs = [{ clip: 'Idle_Loop', t0: doorT }]; turnBack = true; if (t >= knockT) segs = [{ clip: 'Idle_Loop', t0: doorT }, { clip: 'Punch_Jab', t0: knockT, speed: .7 }]; }
+  if (t >= L('05').start) fear = .4; if (t >= L('07').start) fear = .55; if (t >= stopT) fear = .7; if (t >= faceT) { fear = 1; tears = .6; flinch = Math.exp(-(t - faceT) * 4); } if (t >= runT) tears = 1;
+  if (off !== lastOff) { relabel(off); lastOff = off; }
+  // ---- place him
+  if (place === 'hall') { me.root.position.set(30 - .3, 0, -1.5); me.root.rotation.y = -Math.PI / 2; }
+  else { const a = along(s); me.root.position.copy(a.p); let d = a.dir.clone(); if (turnBack && t < doorT) d.multiplyScalar(-1); if (t >= doorT) d = V(0, 0, 1); me.root.rotation.y = Math.atan2(d.x, d.z); }
+  if (segs[segs.length - 1].clip === 'Punch_Jab') { /* knock, knock: loop the jab */ segs[segs.length - 1].t0 = knockT + Math.floor((t - knockT) / .9) * .9; }
+  pose(me, segs, t); me.root.updateMatrixWorld(true);
+  setFear(me, fear, t, tears); bodyFear(me, fear * (t >= runT && t < doorT ? .3 : 1), t, flinch);
+  const hp = me.bone('Head').getWorldPosition(new THREE.Vector3()).add(V(0, .1, 0));
+  // flashlight: from his chest, pointing where he walks (down the flight), a little shaky
+  const fwd = V(Math.sin(me.root.rotation.y), 0, Math.cos(me.root.rotation.y));
+  const src = me.root.position.clone().add(V(0, 1.25, 0)).addScaledVector(fwd, .3);
+  const onFlight = place === 'stairs' && (s % 1.35) < 1 && t < runT, aim = src.clone().addScaledVector(fwd, onFlight ? 2.0 : 2.4).add(V(Math.sin(t * 3.1) * .1, onFlight ? -3.1 : -1.6, 0));
+  let bOn = place === 'stairs' ? 1 : 0;
+  if (t >= faceT && t < runT) bOn = Math.floor(t * 14) % 5 === 0 ? 0 : 1;  // it flickers when it finds the face
+  if (S(doorT, tEnd)) bOn = Math.max(0, 1 - (t - doorT) / 6) * (Math.floor(t * 9) % 7 === 0 ? .3 : 1);  // the battery dies at the door
+  beam.position.copy(src); beam.target.position.copy(aim); window._dbg = { s, src: src.toArray().map(v => +v.toFixed(2)), aim: aim.toArray().map(v => +v.toFixed(2)), rot: +me.root.rotation.y.toFixed(2) }; beam.intensity = 95 * bOn; bounce.position.copy(src.clone().lerp(aim, .75)); bounce.intensity = 7 * bOn;
+  cone.position.copy(src.clone().lerp(aim, .5)); cone.lookAt(aim); cone.rotateX(-Math.PI / 2); cone.material.opacity = .03 * bOn;
+  // the face waits on the next landing below
+  face.visible = S(L('08').start + .8, runT + .4);
+  if (face.visible) { const a = along(sStop - .12 + 1.17); face.position.copy(a.p).add(V(0, 1.45, 0)); face.lookAt(hp); }
+  // ---- camera
+  let pos, look, fov = 52, burn = 0, shake = 0, set = place === 'hall' || t >= outT ? 'hall' : 'stairs';
+  if (t < open + .6) {
+    if (t < W_('01', /except/i)) { const k = prog('01'); pos = V(30 - 1.15, lerp(1.55, 1.62, k), lerp(-.55, -.85, k)); look = hp.clone().add(V(0, -.08, 0)); fov = 44; }
+    else { pos = V(30 + .9, 1.5, -.2); look = V(30 - 1.5, 1.2, -1.5); fov = 50; }
+    const k = clamp((t - open) / .6); cdoor.children[0].rotation.y = 0; cdoor.rotation.y = Math.PI / 2 + k * 1.5;
+  } else if (t < outT) {
+    const behind = fwd.clone().multiplyScalar(-1); const side = V(fwd.z, 0, -fwd.x).multiplyScalar(Math.sign(me.root.position.x || 1) * -1);
+    if (t < L('03').start) { pos = me.root.position.clone().add(V(0, 1.75, 0)).addScaledVector(behind, .55).addScaledVector(side, .5); look = me.root.position.clone().addScaledVector(fwd, 2.6).add(V(0, -1.4, 0)).addScaledVector(side, -.2); fov = 58; }
+    else if (t < L('04').start) { const hand = me.bone('hand_r').getWorldPosition(new THREE.Vector3()); pos = hand.clone().addScaledVector(fwd, 1.1).addScaledVector(side, -.35).add(V(0, .15, 0)); look = hand.clone().add(V(0, .15, 0)); fov = 46; }
+    else if (t < L('05').start) { pos = me.root.position.clone().add(V(0, 2.6, 0)).addScaledVector(behind, .9); look = me.root.position.clone().addScaledVector(fwd, 3.5).add(V(0, -2.5, 0)); fov = 60; }
+    else if (t < L('06').start) { pos = hp.clone().addScaledVector(fwd, .7).add(V(.1, .02, 0)); look = hp.clone(); fov = 40; }
+    else if (t < stopT) { const straight = (s % 1.35) < .36; if (straight) { const pa = along(s + .62).p; pos = pa.clone().add(V(pa.x > 0 ? -.25 : .25, 1.05, 0)); look = me.root.position.clone().add(V(0, 1.2, 0)); fov = 56; } else { pos = me.root.position.clone().add(V(0, 2.1, 0)).addScaledVector(behind, .5).addScaledVector(side, .45); look = me.root.position.clone().addScaledVector(fwd, 2.2).add(V(0, -1.2, 0)); fov = 60; } shake = .003; }
+    else if (t < faceT) { pos = hp.clone().addScaledVector(fwd, .1); look = face.visible ? face.position.clone().add(V(0, -.3, 0)) : hp.clone().addScaledVector(fwd, 3).add(V(0, -1.5, 0)); fov = 58; shake = .004; }
+    else if (t < L('09').end - .2 && t < W_('09', /pupils/i) + .1) { pos = hp.clone().addScaledVector(fwd, .1); look = face.position.clone(); fov = lerp(48, 34, ease((t - faceT) / 1.4)); shake = .005; }
+    else if (t < runT) { pos = hp.clone().addScaledVector(fwd, .6).add(V(.08, 0, 0)); look = hp.clone(); fov = 38; burn = .4; }
+    else if (t < doorT) { pos = me.root.position.clone().add(V(0, 1.2, 0)).addScaledVector(fwd, -1.6).add(V(0, -.4, 0)); look = hp.clone(); fov = 58; shake = .02; burn = .45; }
+    else { pos = me.root.position.clone().add(V(.7, 1.55, -1.1)); look = V(0, 1.15, 1.92); fov = 52; burn = .3; }
+  } else { const k = clamp((t - outT) / (tEnd - outT)); pos = V(30 + .8, 1.55, 2.8 - k * .8); look = V(30 - 1.5, 1.1, -1.5); fov = 50; }
+  pos.add(V(Math.sin(t * 13) * shake, Math.sin(t * 9.7) * shake, 0));
+  camFill.position.copy(pos); camFill.intensity = (fov <= 44 && set === 'stairs') ? 1.6 * Math.max(bOn, .4) : 0;
+  ST.visible = set === 'stairs'; HW.visible = set === 'hall'; me.root.visible = !(set === 'hall' && t >= outT);
+  if (set === 'hall' && t >= outT) { cdoor.rotation.y = Math.PI / 2; const k = (t - outT) / (tEnd - outT); hwLights.forEach((l, i) => l.intensity = (Math.floor(k * 14) % 2 ? 1.2 : 7)); }
+  else hwLights.forEach(l => l.intensity = 7);
+  cam.fov = fov; cam.updateProjectionMatrix(); cam.position.copy(pos); cam.lookAt(look);
+  if (window.DBGCAM) { if (window.DBGCAM[2] === 1) scene.overrideMaterial = new THREE.MeshNormalMaterial(); if (window.DBGCAM[2] === 2) scene.overrideMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff }); const d = window.DBGCAM; if (d[3] === 0) beam.intensity = 0; if (d[3] === 1) { beam.position.set(-.7, 2, -1); beam.target.position.set(-.7, -2, -2); } cam.position.set(...d[0]); cam.lookAt(...d[1]); cam.fov = 60; cam.updateProjectionMatrix(); }
+  retro.u.burn.value = burn; retro.render(scene, cam, t);
+  // ---- HUD
+  let hud = '', over = '';
+  const landing = Math.max(1, Math.floor((s || 0) / 1.35) + 1 + off), depth = (Math.max(0, s || 0) / 1.35) * FD * 1.0 + off * FD;
+  if (t < L('02').start) hud = title('SCP-087', 'EUCLID') + T('NARRATED BY', 80, 330, 24, .55, 300, 8) + T('D-4172', 80, 372, 32, .9, 300, 10, 'start', '#f0a060') + T('ASSIGNMENT 3', 80, 414, 24, .55, 300, 8);
+  else if (S(L('02').start, L('03').start)) { if (t > open) hud = T('STEPS', 80, 330, 28, .7, 300, 8) + T('13', 80, 390, 48, 1, 200, 8) + T('THEN A LANDING', 80, 440, 24, .6, 300, 8); }
+  else if (S(L('03').start, L('04').start)) hud = T('LIGHT', 80, 330, 28, .7, 300, 8) + T('75 W', 80, 390, 48, 1, 200, 8) + T('MAXIMUM', 80, 440, 24, .6, 300, 8);
+  else if (S(L('04').start, L('05').start)) hud = T('VISIBLE', 80, 330, 28, .7, 300, 8) + T('1.5 FLIGHTS', 80, 390, 44, 1, 200, 8);
+  else if (S(L('05').start, outT)) {
+    hud = T('LANDING', 80, 330, 28, .7, 300, 8) + T(String(landing).padStart(2, '0'), 80, 395, 52, 1, 200, 8, 'start', t >= runT ? '#ff8080' : '#e8ecf5') + T(`DEPTH   ${Math.round(depth)} m`, 80, 450, 26, .6, 300, 8);
+    if (t < runT) hud += T('CRYING', 80, 520, 26, .7, 300, 8) + T('~200 m BELOW', 80, 568, 32, blink(t, 1.2), 300, 8, 'start', '#ff8080');
+    if (t >= doorT) hud = T('DOOR', 80, 330, 28, .7, 300, 8) + T('LOCKED', 80, 390, 44, blink(t), 300, 8, 'start', '#ff8080') + T('FROM THE OUTSIDE', 80, 440, 24, .6, 300, 8);
+  } else if (t >= outT && t < tEnd + .3) { const day = Math.min(14, 1 + Math.floor(clamp((t - outT) / Math.max(.5, tEnd - outT)) * 14)); hud = T('KNOCKING REPORTED', 80, 330, 26, .7, 300, 8) + T(`DAY ${day}`, 80, 395, 52, 1, 200, 8, 'start', '#ff8080'); }
+  if (S(fiftyT - .12, fiftyT + .12) || S(hundredT - .12, hundredT + .12) || S(faceT - .06, faceT + .06)) over += `<rect width="${W}" height="${H}" fill="#000"/>`;
+  if (t >= tEnd + .3) { over += `<rect width="${W}" height="${H}" fill="#000"/>`; hud = ''; }
+  let g = DEFS(t) + `<rect width="${W}" height="${H}" fill="url(#vig)" opacity=".45"/>` + over + hud + caption(t) + endCard(t, TL.cardAt);
+  document.getElementById('c').innerHTML = g;
+};
+</script></body></html>
