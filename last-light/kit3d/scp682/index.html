@@ -1,0 +1,151 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden} #g{position:absolute;left:0;top:0;width:1080px;height:1920px} #c{position:absolute;left:0;top:0}</style>
+<script src="../ll.js"></script></head><body>
+<canvas id="g" width="1080" height="1920"></canvas>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script type="importmap">{"imports":{"three":"../three.module.js","three/addons/":"../jsm/"}}</script>
+<script type="module">
+// SCP-682, low-poly 3D, told by D-4172. The interview from Addendum 682-B, with him holding the microphone.
+import { THREE, load, loadMannequins, makeHuman, pose, makeRetro, makeRenderer, setFear, bodyFear } from '../kit3d.js';
+import { makeReptile, poseReptile } from './reptile.js';
+const renderer = makeRenderer(document.getElementById('g')), retro = makeRetro(renderer, 450, 800);
+const scene = new THREE.Scene(); const BG = new THREE.Color(0x030405); scene.background = BG.clone(); scene.fog = new THREE.FogExp2(0x030405, .05);
+const cam = new THREE.PerspectiveCamera(52, 1080 / 1920, .03, 60);
+let seed = 47; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const lam = (c, o = {}) => new THREE.MeshLambertMaterial(Object.assign({ color: c, flatShading: true }, o));
+const shadowy = o => { o.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } }); return o; };
+const put = (o, x = 0, y = 0, z = 0, ry = 0) => { o.position.set(x, y, z); o.rotation.y = ry; scene.add(shadowy(o)); return o; };
+const box = (w, h, d, c, o) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), lam(c, o));
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+function canvasTex(w, h, paint) { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; paint(cv.getContext('2d'), w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; }
+function sign(lines, w, h, bg, fg, font) { const t = canvasTex(512, Math.round(512 * h / w), (x, W2, H2) => { x.fillStyle = bg; x.fillRect(0, 0, W2, H2); x.fillStyle = fg; x.textAlign = 'center'; x.font = font; lines.forEach((l, i) => x.fillText(l, W2 / 2, (i + 1) * H2 / (lines.length + 1) + 14)); });
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: t, transparent: bg === 'transparent' })); }
+
+// ---- the chamber: 5 x 5 x 5 m, acid-resistant steel plate (stained), a window, a hatch
+const H5 = 5, HW = 2.5, steel = 0x5d6266;
+put(box(5.2, .2, 5.2, 0x3e4245), 0, -.1, 0); put(box(5.2, .2, 5.2, 0x2a2d30), 0, H5 + .1, 0);
+for (const [w, d, x, z] of [[5.2, .25, 0, -HW - .12], [.25, 5.2, -HW - .12, 0], [.25, 5.2, HW + .12, 0]]) put(box(w, H5, d, steel), x, H5 / 2, z);
+// front wall with the window
+put(box(5.2, 1.2, .25, steel), 0, .6, HW + .12); put(box(5.2, 2.6, .25, steel), 0, 3.7, HW + .12); put(box(1.6, 1.2, .25, steel), -1.8, 1.8, HW + .12); put(box(1.6, 1.2, .25, steel), 1.8, 1.8, HW + .12);
+put(box(2.0, 1.2, .06, 0x8fb0a0, { transparent: true, opacity: .25 }), 0, 1.8, HW + .1);
+// plate seams, bolts, acid burn stains
+for (let i = -2; i <= 2; i++) for (const [rx, x, z] of [[0, i, -HW + .01], [Math.PI / 2, -HW + .01, i], [-Math.PI / 2, HW - .01, i]]) { const sm = put(box(.04, H5, .02, 0x34383b), x, H5 / 2, z, rx); }
+for (let y = 1; y < 5; y++) for (const [x, z, ry] of [[0, -HW + .01, 0], [-HW + .01, 0, Math.PI / 2], [HW - .01, 0, Math.PI / 2]]) put(box(5, .03, .02, 0x34383b), x, y, z, ry);
+for (let i = 0; i < 26; i++) { const s = new THREE.Mesh(new THREE.CircleGeometry(.2 + R() * .5, 7), lam(0x3a4a2a, { transparent: true, opacity: .6 })); const side = Math.floor(R() * 3);
+  if (side === 0) put(s, -2 + R() * 4, .3 + R() * 3.8, -HW + .02); else { put(s, side === 1 ? -HW + .02 : HW - .02, .3 + R() * 3.8, -2 + R() * 4, side === 1 ? Math.PI / 2 : -Math.PI / 2); } }
+// deep claw gouges on the back wall
+for (let i = 0; i < 5; i++) { const g = put(box(.05, 1.4, .03, 0x1a1c1e), -1.3 + i * .14, 2.3 + i * .05, -HW + .02); g.rotation.z = .25; }
+// hatch on the right wall
+const hatch = put(box(.12, 2.1, 1.1, 0x4a4f53), HW - .02, 1.05, 1.4); put(box(.05, .25, .25, 0xd8c23a), HW - .1, 1.6, 1.0);
+put(sign(['SCP-682', 'KETER'], .9, .4, '#d8c23a', '#151515', 'bold 70px Inter, Arial'), HW - .02, 2.5, 1.4, -Math.PI / 2);
+put(sign(['DO NOT SPEAK', 'TO THE SUBJECT'], 1.1, .42, '#b01c1c', '#f4f4f4', 'bold 54px Inter, Arial'), -HW + .02, 2.3, 1.0, Math.PI / 2);
+// acid inlet pipes and a floor drain
+for (const x of [-1.8, 1.8]) { put(new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 5, 8), lam(0x6a6e3a)), x, H5 / 2, -HW + .2); }
+put(new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, .02, 10), lam(0x111111)), 1.4, .005, -1.4);
+// the acid: a glowing surface whose level falls during the drain; bubbles
+const acidMat = new THREE.MeshLambertMaterial({ color: 0x8fd04a, emissive: 0x3a7a10, transparent: true, opacity: .42, side: THREE.DoubleSide });
+const acid = put(new THREE.Mesh(new THREE.PlaneGeometry(5, 5, 10, 10), acidMat), 0, 4.2, 0); acid.rotation.x = -Math.PI / 2; acid.receiveShadow = false; acid.castShadow = false;
+const acidLight = new THREE.PointLight(0x9ae050, 14, 9, 1.3); scene.add(acidLight);
+const bubbles = []; for (let i = 0; i < 40; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(.03 + R() * .04, 5, 4), new THREE.MeshBasicMaterial({ color: 0xcff090, transparent: true, opacity: .7 })); b.userData = { x: -2.2 + R() * 4.4, z: -2.2 + R() * 4.4, ph: R() * 5, sp: .4 + R() * .6 }; scene.add(b); bubbles.push(b); }
+// lights: cold overhead, red alarms, light through the window
+const top = new THREE.SpotLight(0xdfe8ff, 95, 14, .7, .5, 1.3); top.position.set(.5, H5 - .1, 1.0); top.target.position.set(0, 0, -.6); top.castShadow = true; top.shadow.mapSize.set(1024, 1024); scene.add(top, top.target);
+const hemi = new THREE.HemisphereLight(0x6a7488, 0x141210, .85); scene.add(hemi);
+const alarm = [V(-2.2, 4.6, 2.2), V(2.2, 4.6, -2.2)].map(p => { const l = new THREE.PointLight(0xff1a10, 0, 9, 1.2); l.position.copy(p); scene.add(l); const b = put(new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .14, 8), new THREE.MeshBasicMaterial({ color: 0x401010 })), p.x, p.y + .2, p.z); return { l, b }; });
+// outside the window: a little observation corridor
+put(box(5, .1, 2.4, 0x3a3b3d), 0, -.05, HW + 1.45); put(box(5, 3, .2, 0x2e3033), 0, 1.5, HW + 2.6); put(box(5, .1, 2.4, 0x1c1c1e), 0, 3, HW + 1.45);
+const work = new THREE.PointLight(0xffe2c0, 7, 6, 1.3); work.position.set(.9, 2.0, 2.1); scene.add(work);  // the interview lamp
+const outL = new THREE.PointLight(0xdfe8ff, 3, 5, 1.5); outL.position.set(0, 2.8, HW + 1.6); scene.add(outL);
+
+// ---- SCP-682 (original design), lying in the corner
+const rep = makeReptile(9); rep.root.scale.setScalar(.85); put(rep.root, -.3, 0, -.9, .25);
+
+// ---- people
+const lib = await loadMannequins();
+const me = makeHuman(lib, { number: 'D-4172' }); put(me.root);
+const doc = makeHuman(lib, { suit: 0xe4e4e0, skin: 0xc8a080, boots: 0x2a2a2a, number: '' }); put(doc.root);
+// the boom microphone
+const boom = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, 1.7, 5), lam(0x222222)); pole.rotation.x = Math.PI / 2; pole.position.z = .85; boom.add(pole);
+const micH = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, .2, 8), lam(0x3a3a3a)); micH.rotation.x = Math.PI / 2; micH.position.z = 1.75; boom.add(micH);
+const foam = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), lam(0x1a1a1a)); foam.position.z = 1.88; boom.add(foam); scene.add(shadowy(boom));
+// clipboard for the doctor
+const clip = new THREE.Mesh(new THREE.BoxGeometry(.22, .3, .02), lam(0xb08a5a)); doc.bone('hand_l').add(clip); clip.position.set(0, .12, .05);
+
+window.ready = true;
+window.draw = function (t) {
+  tNow = t; const L = id => ln(id), W_ = (id, re) => wordT(id, re), S = (a, b) => t >= a && t < b;
+  const drain0 = L('05').start, drain1 = W_('05', /interview/i) + .4, enter = W_('05', /job/i) - .6, closer = L('08').start + .2, eyeT = W_('09', /opens/i) - .1, word = W_('10', /disgusting/i), alarmT = W_('11', /alarms/i), tEnd = L('12').end;
+  // ---- acid level
+  const level = t < drain0 ? 4.2 : lerp(4.2, .02, ease((t - drain0) / Math.max(.5, drain1 - drain0)));
+  acid.position.y = level; acid.visible = level > .05; acidLight.position.set(0, Math.max(.4, level - .3), 0); acidLight.intensity = level > .1 ? 14 : 3;
+  const ap = acid.geometry.attributes.position; for (let i = 0; i < ap.count; i++) ap.setZ(i, Math.sin(ap.getX(i) * 2 + t * 1.3) * .03 + Math.cos(ap.getY(i) * 2.4 + t) * .03); ap.needsUpdate = true; acid.geometry.computeVertexNormals();
+  bubbles.forEach(b => { const u = b.userData, h = ((t * u.sp + u.ph) % 1) * level; b.visible = level > .3; b.position.set(u.x + Math.sin(t * 3 + u.ph) * .05, h, u.z); });
+  // ---- SCP-682
+  const st = { breathe: t >= word ? 1 : t >= eyeT ? .6 : .15, eyeOpen: t >= eyeT ? clamp((t - eyeT) / .5) : 0, mutter: S(L('07').start, L('08').start) ? 1 : 0,
+    jaw: t >= word ? clamp((t - word) / .35) * .9 : (S(L('07').start, L('07').end) ? .05 : 0), lookYaw: t >= eyeT ? .35 : 0, lookPitch: t >= word ? .25 : 0,
+    rise: t >= alarmT ? clamp((t - alarmT) / 1.6) : 0, tremble: t >= eyeT ? 1 : 0, lunge: t >= tEnd - .4 ? clamp((t - tEnd + .4) / .35) : 0 };
+  poseReptile(rep, t, st);
+  rep.root.position.set(-.3 + st.lunge * .6, 0, -.9 + st.lunge * 1.6);
+  // ---- people: in the corridor at first, then through the hatch after the drain
+  let mePos = V(.3, 0, HW + 1.0), meRot = Math.PI, docPos = V(1.3, 0, HW + 1.2), docRot = Math.PI, meSegs = [{ clip: 'Idle_Loop', t0: -9 }], docSegs = [{ clip: 'Idle_Loop', t0: -9 }];
+  let inside = false, fear = .2, tears = 0, flinch = 0;
+  if (t >= enter) {
+    inside = true; const u = clamp((t - enter) / 2.6);
+    docPos = V(lerp(HW - .3, 1.55, u), 0, lerp(1.4, 1.65, u)); mePos = V(lerp(HW - .3, .95, clamp((t - enter - .5) / 2.6)), 0, lerp(1.4, 2.0, clamp((t - enter - .5) / 2.6)));
+    docSegs = [{ clip: 'Walk_Loop', t0: enter }, { clip: 'Idle_Talking_Loop', t0: enter + 2.6 }]; meSegs = [{ clip: 'Walk_Loop', t0: enter + .5 }, { clip: 'Idle_Torch_Loop', t0: enter + 3.1 }];
+    if (t >= closer) { const k = clamp((t - closer) / 1.6); mePos.lerp(V(.35, 0, 1.55), k); meSegs = [{ clip: 'Idle_Torch_Loop', t0: -9 }, { clip: 'Walk_Loop', t0: closer }, { clip: 'Idle_Torch_Loop', t0: closer + 1.6 }]; }
+    if (t >= alarmT) { const k = clamp((t - alarmT - .2) / 1.4); docPos = V(lerp(1.55, HW - .2, k), 0, lerp(1.65, 1.4, k)); docSegs = [{ clip: 'Idle_Talking_Loop', t0: -9 }, { clip: 'Sprint_Loop', t0: alarmT + .2 }]; }
+    const head = rep.head.getWorldPosition(new THREE.Vector3());
+    meRot = Math.atan2(head.x - mePos.x, head.z - mePos.z); if (!(t >= alarmT && t > alarmT + .2)) docRot = Math.atan2(head.x - docPos.x, head.z - docPos.z); else docRot = Math.PI / 2;
+    if (t < enter + 3.1 && t >= enter) { meRot = -Math.PI / 2 + .3; } if (t < enter + 2.6) docRot = -Math.PI / 2 + .2;
+  }
+  if (t >= L('05').start) fear = .35; if (t >= closer) fear = .55; if (t >= eyeT) { fear = .9; flinch = Math.exp(-(t - eyeT) * 4); tears = .4; } if (t >= word) { fear = 1; tears = 1; flinch = Math.max(flinch, Math.exp(-(t - word) * 4)); }
+  me.root.position.copy(mePos); me.root.rotation.y = meRot; doc.root.position.copy(docPos); doc.root.rotation.y = docRot; doc.root.visible = !(t >= alarmT + 1.7);
+  pose(me, meSegs, t); pose(doc, docSegs, t + 2); me.root.updateMatrixWorld(true); doc.root.updateMatrixWorld(true);
+  setFear(me, fear, t, tears); bodyFear(me, fear, t, flinch); setFear(doc, t >= word ? 1 : .15, t + 3, 0); bodyFear(doc, t >= word ? .8 : .1, t + 3, 0);
+  const hp = me.bone('Head').getWorldPosition(new THREE.Vector3()).add(V(0, .1, 0)), dp = doc.bone('Head').getWorldPosition(new THREE.Vector3()).add(V(0, .1, 0));
+  // the boom: from his hands toward the head
+  const hand = me.bone('hand_r').getWorldPosition(new THREE.Vector3()), rh = rep.head.getWorldPosition(new THREE.Vector3());
+  boom.visible = inside && t >= enter + 2.8; boom.position.copy(hand); boom.lookAt(rh.clone().add(V(0, .1, 0))); if (t >= word) boom.rotateX(Math.sin(t * 25) * .03);
+  // alarms
+  const blinkA = t >= alarmT ? (Math.sin(t * 7) > 0 ? 1 : .1) : 0; alarm.forEach(a => { a.l.intensity = blinkA * 30; a.b.material.color.setHex(blinkA > .5 ? 0xff2a20 : 0x401010); });
+  top.intensity = t >= alarmT ? 55 : 95;
+  // ---- camera
+  let pos, look, fov = 50, burn = 0, shake = 0, under = false;
+  const eyeW = rep.eyes[1].eye.getWorldPosition(new THREE.Vector3()), throat = rep.gash.getWorldPosition(new THREE.Vector3()); const hf = rh.clone().sub(rep.neck.getWorldPosition(new THREE.Vector3())); hf.y = 0; hf.normalize();
+  if (t < L('02').start) { const k = prog('01'); pos = hp.clone().add(V(.1, .02, lerp(-.95, -.7, ease(k)))); look = hp.clone(); fov = 40; }   // his face through the window glow
+  else if (t < L('03').start) { const k = prog('02'); pos = V(lerp(2.1, 1.6, k), lerp(4.6, 4.3, k), lerp(2.1, 1.7, k)); look = V(-.3, 1.2, -.9); fov = 62; }
+  else if (t < L('04').start) { const k = prog('03'); pos = V(lerp(2.1, 1.2, k), lerp(1.6, 1.3, k), 2.1); look = V(-.4, .5, -.7); fov = 62; under = true; }
+  else if (t < L('05').start) { const k = prog('04'); pos = eyeW.clone().add(V(.7 + .3 * (1 - k), .25, .65 + .3 * (1 - k))); look = eyeW.clone(); fov = 36; under = true; }
+  else if (t < enter + 1.5) { const k = clamp((t - L('05').start) / (enter + 1.5 - L('05').start)); pos = V(-2.0, lerp(4.5, 3.4, k), 2.1); look = V(.6, lerp(2.0, .8, k), 0); fov = 64; }
+  else if (t < L('06').start) { pos = V(-1.9, 1.9, 2.1); look = V(1.2, 1.0, 1.0); fov = 60; }
+  else if (t < L('07').start) { pos = V(-1.8, 1.65, 2.3); look = V(1.1, 1.0, 1.2); fov = 62; }
+  else if (t < L('08').start) { const a = W_('07', /move/i); if (t < a) { pos = rh.clone().add(V(.9, .25, .9)); look = rh.clone(); fov = 42; } else { const f = V(Math.sin(doc.root.rotation.y), 0, Math.cos(doc.root.rotation.y)); pos = dp.clone().addScaledVector(f, .85).add(V(.15, .02, 0)); look = dp.clone().add(V(0, -.05, 0)); fov = 42; } }
+  else if (t < L('09').start) { const a = W_('08', /throat/i); if (t < a) { pos = V(-.6, 1.4, 2.6); look = me.root.position.clone().add(V(0, 1.0, 0)); fov = 54; } else { pos = throat.clone().addScaledVector(hf, .9).add(V(.3, -.1, 0)); look = throat.clone(); fov = 44; } }
+  else if (t < L('10').start) { if (t < eyeT + 1.2) { pos = eyeW.clone().addScaledVector(hf, .45).add(V(.35, .08, 0)); look = eyeW.clone(); fov = 30; } else { const f = V(Math.sin(me.root.rotation.y), 0, Math.cos(me.root.rotation.y)); pos = hp.clone().addScaledVector(f, .7); look = hp.clone(); fov = 38; burn = .35; } }
+  else if (t < L('11').start) { pos = rh.clone().addScaledVector(hf, 1.2).addScaledVector(V(-hf.z, 0, hf.x), -1.4).add(V(0, .35, 0)); look = rh.clone().addScaledVector(hf, .3); fov = 52; burn = .35; shake = .004; }
+  else if (t < L('12').start) { pos = V(-2.0, 2.3, 2.2); look = V(.4, 1.0, .4); fov = 62; shake = .01; burn = .4; }
+  else { pos = hp.clone(); look = rh.clone().add(V(0, .1, 0)); fov = 50 + st.lunge * 15; burn = .5 + .4 * st.lunge; shake = .006 + .03 * st.lunge; }
+  pos.add(V(Math.sin(t * 13) * shake, Math.sin(t * 9.7) * shake, 0));
+  me.root.visible = !(t >= L('12').start && !st.lunge && false);
+  cam.fov = fov; cam.updateProjectionMatrix(); cam.position.copy(pos); cam.lookAt(look);
+  // inside the acid: everything green and close
+  const sub = under && pos.y < level;
+  scene.fog.color.setHex(sub ? 0x1a3a0a : 0x030405); scene.fog.density = sub ? .22 : .05; scene.background.setHex(sub ? 0x1a3a0a : 0x030405);
+  retro.u.burn.value = burn; retro.render(scene, cam, t);
+  // ---- HUD
+  let hud = '', over = '';
+  if (t < L('02').start) hud = title('SCP-682', 'KETER') + T('NARRATED BY', 80, 330, 24, .55, 300, 8) + T('D-4172', 80, 372, 32, .9, 300, 10, 'start', '#f0a060') + T('ASSIGNMENT 4', 80, 414, 24, .55, 300, 8);
+  else if (S(L('02').start, L('03').start)) hud = T('CHAMBER', 80, 330, 28, .7, 300, 8) + T('5 × 5 × 5 m', 80, 390, 44, 1, 200, 8) + T('HYDROCHLORIC ACID', 80, 445, 26, .8, 300, 8, 'start', '#b8f070');
+  else if (S(L('03').start, L('04').start)) { hud = T('TERMINATION ATTEMPTS', 80, 330, 26, .7, 300, 8); [['SHOT', /shot/i], ['BURNED', /burned/i], ['DISSOLVED', /dissolved/i]].forEach(([w, re], i) => { if (t >= W_('03', re) - .1) hud += T(w + '   FAILED', 80, 390 + i * 52, 32, .9, 300, 8, 'start', '#ff8080'); }); if (t >= W_('03', /grows/i) - .2) hud += T('REGENERATING', 80, 560, 30, blink(t, 1.5), 300, 8, 'start', '#b8f070'); }
+  else if (S(L('04').start, L('05').start)) hud = T('PSYCHOLOGY', 80, 330, 26, .7, 300, 8) + T('HATES ALL LIFE', 80, 390, 40, 1, 300, 8, 'start', '#ff8080');
+  else if (S(L('05').start, L('06').start)) hud = T('ACID LEVEL', 80, 330, 26, .7, 300, 8) + T(Math.round(clamp((level - .02) / 4.18) * 100) + '%', 80, 395, 52, 1, 200, 8, 'start', '#b8f070') + T('INTERVIEW 682-B', 80, 455, 24, .6, 300, 8);
+  else if (S(L('06').start, eyeT)) hud = T('INTERVIEW 682-B', 80, 330, 26, .7, 300, 8) + T('RESPONSE', 80, 385, 26, .6, 300, 8) + T(t >= L('07').start ? 'INAUDIBLE' : 'NONE', 80, 440, 40, 1, 300, 8, 'start', '#ffd080') + (t >= closer ? T('MICROPHONE   D-4172', 80, 505, 26, .8, 300, 8, 'start', '#f0a060') : '');
+  else if (S(eyeT, alarmT)) hud = T('SCP-682', 80, 330, 26, .7, 300, 8) + T('AWAKE', 80, 390, 44, blink(t), 300, 8, 'start', '#ff8080');
+  else if (t >= alarmT && t < tEnd) hud = T('CONTAINMENT', 80, 330, 26, .7, 300, 8) + T('BREACH', 80, 395, 52, blink(t, 2), 300, 8, 'start', '#ff8080') + T('NO TEAMS FEWER THAN 7', 80, 455, 24, .6, 300, 8);
+  if (sub) over += `<rect width="${W}" height="${H}" fill="#4a8a10" opacity=".12"/>`;
+  if (t >= alarmT && t < tEnd) over += `<rect width="${W}" height="${H}" fill="#ff1a10" opacity="${blinkA > .5 ? .06 : 0}"/>`;
+  if (t >= tEnd) { over += `<rect width="${W}" height="${H}" fill="#000"/>`; hud = ''; }
+  let g = DEFS(t) + `<rect width="${W}" height="${H}" fill="url(#vig)" opacity=".45"/>` + over + hud + caption(t) + endCard(t, TL.cardAt);
+  document.getElementById('c').innerHTML = g;
+};
+</script></body></html>
