@@ -1,0 +1,146 @@
+[
+ {
+  "id": "01_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Assignment two. SCP-096. One rule... never look at its face."
+ },
+ {
+  "id": "02_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It sits in a steel cube. Curled up. Two and a half meters tall. Arms too long."
+ },
+ {
+  "id": "03_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It's harmless... until someone sees its face. In person. On a camera. Even in a photo."
+ },
+ {
+  "id": "04_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "My job is the observation room. Monitors off. Cameras covered."
+ },
+ {
+  "id": "05_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then one of the monitors... flickers on."
+ },
+ {
+  "id": "06_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Just for a second... I see it. A face."
+ },
+ {
+  "id": "07_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "And somewhere below me... something starts screaming."
+ },
+ {
+  "id": "08_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It's crying. It's shaking. And it knows exactly where I am."
+ },
+ {
+  "id": "09_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The alarms start. The doors lock. I run."
+ },
+ {
+  "id": "10_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Behind me... the steel tears like paper."
+ },
+ {
+  "id": "11_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Last time... it took nine minutes. It crossed a whole ocean."
+ },
+ {
+  "id": "12_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It's not screaming anymore. Which means... it's right behind me."
+ },
+ {
+  "id": "01_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Assignment two. SCP-096. One rule... never look at its face."
+ },
+ {
+  "id": "02_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It sits in a steel cube. Curled up. Two and a half meters tall. Arms too long."
+ },
+ {
+  "id": "03_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It's harmless... until someone sees its face. In person. On a camera. Even in a photo."
+ },
+ {
+  "id": "04_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "My job is the observation room. Monitors off. Cameras covered."
+ },
+ {
+  "id": "05_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then one of the monitors... flickers on."
+ },
+ {
+  "id": "06_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Just for a second... I see it. A face."
+ },
+ {
+  "id": "07_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "And somewhere below me... something starts screaming."
+ },
+ {
+  "id": "08_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It's crying. It's shaking. And it knows exactly where I am."
+ },
+ {
+  "id": "09_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The alarms start. The doors lock. I run."
+ },
+ {
+  "id": "10_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Behind me... the steel tears like paper."
+ },
+ {
+  "id": "11_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Last time... it took nine minutes. It crossed a whole ocean."
+ },
+ {
+  "id": "12_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It's not screaming anymore. Which means... it's right behind me."
+ }
+]

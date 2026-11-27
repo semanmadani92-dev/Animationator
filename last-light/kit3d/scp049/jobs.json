@@ -1,0 +1,98 @@
+[
+ {
+  "id": "01_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "If it touches you... you die."
+ },
+ {
+  "id": "02_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "SCP-049. The Plague Doctor. And it thinks I'm sick."
+ },
+ {
+  "id": "03_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It says it can smell the Pestilence on me."
+ },
+ {
+  "id": "04_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "One touch, and everything stops. Your heart. Your breath."
+ },
+ {
+  "id": "05_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then it opens its black bag... and starts the surgery."
+ },
+ {
+  "id": "06_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It calls them cured. And they get back up."
+ },
+ {
+  "id": "07_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Tonight, the power went out. Its cell door is open."
+ },
+ {
+  "id": "08_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "And somewhere in the dark, it whispers... I can smell it on you."
+ },
+ {
+  "id": "01_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "If it touches you... you die."
+ },
+ {
+  "id": "02_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "SCP-049. The Plague Doctor. And it thinks I'm sick."
+ },
+ {
+  "id": "03_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It says it can smell the Pestilence on me."
+ },
+ {
+  "id": "04_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "One touch, and everything stops. Your heart. Your breath."
+ },
+ {
+  "id": "05_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then it opens its black bag... and starts the surgery."
+ },
+ {
+  "id": "06_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It calls them cured. And they get back up."
+ },
+ {
+  "id": "07_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Tonight, the power went out. Its cell door is open."
+ },
+ {
+  "id": "08_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "And somewhere in the dark, it whispers... I can smell it on you."
+ }
+]

@@ -1,0 +1,26 @@
+[
+ {
+  "id": "02_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It sits in a steel cube. Curled up. Almost two and a half meters tall. Arms too long."
+ },
+ {
+  "id": "11_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Nothing has ever stopped it. Not walls. Not doors. Not distance."
+ },
+ {
+  "id": "02_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It sits in a steel cube. Curled up. Almost two and a half meters tall. Arms too long."
+ },
+ {
+  "id": "11_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Nothing has ever stopped it. Not walls. Not doors. Not distance."
+ }
+]

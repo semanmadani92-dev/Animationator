@@ -1,0 +1,146 @@
+[
+ {
+  "id": "01_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Assignment three. A janitor's closet. Except... it isn't."
+ },
+ {
+  "id": "02_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Behind the door, a staircase going down. Thirteen steps. A landing. Then thirteen more."
+ },
+ {
+  "id": "03_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "They give me a flashlight. Seventy-five watts. Anything brighter... the dark just eats it."
+ },
+ {
+  "id": "04_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "I can only ever see one and a half flights ahead."
+ },
+ {
+  "id": "05_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then I hear it. A child. Crying. Somewhere below me."
+ },
+ {
+  "id": "06_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "They say it's two hundred meters down. So I keep walking."
+ },
+ {
+  "id": "07_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Fifty landings. A hundred. The crying never gets any closer."
+ },
+ {
+  "id": "08_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then my light catches something... on the next landing."
+ },
+ {
+  "id": "09_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "A face. No pupils. No nose. No mouth."
+ },
+ {
+  "id": "10_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "I run. Up. Thirteen steps. Turn. Thirteen steps. Turn."
+ },
+ {
+  "id": "11_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "I reach the door. It's locked. From the outside."
+ },
+ {
+  "id": "12_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "So I knock. And I knock. For two weeks... nobody opens it."
+ },
+ {
+  "id": "01_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Assignment three. A janitor's closet. Except... it isn't."
+ },
+ {
+  "id": "02_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Behind the door, a staircase going down. Thirteen steps. A landing. Then thirteen more."
+ },
+ {
+  "id": "03_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "They give me a flashlight. Seventy-five watts. Anything brighter... the dark just eats it."
+ },
+ {
+  "id": "04_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "I can only ever see one and a half flights ahead."
+ },
+ {
+  "id": "05_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then I hear it. A child. Crying. Somewhere below me."
+ },
+ {
+  "id": "06_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "They say it's two hundred meters down. So I keep walking."
+ },
+ {
+  "id": "07_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Fifty landings. A hundred. The crying never gets any closer."
+ },
+ {
+  "id": "08_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then my light catches something... on the next landing."
+ },
+ {
+  "id": "09_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "A face. No pupils. No nose. No mouth."
+ },
+ {
+  "id": "10_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "I run. Up. Thirteen steps. Turn. Thirteen steps. Turn."
+ },
+ {
+  "id": "11_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "I reach the door. It's locked. From the outside."
+ },
+ {
+  "id": "12_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "So I knock. And I knock. For two weeks... nobody opens it."
+ }
+]

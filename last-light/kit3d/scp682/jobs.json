@@ -1,0 +1,146 @@
+[
+ {
+  "id": "01_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Assignment four. SCP-682. They call it the Hard-to-Destroy Reptile."
+ },
+ {
+  "id": "02_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It lives in a steel chamber. Five meters across. Filled with acid... so it can't move."
+ },
+ {
+  "id": "03_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "They've shot it. Burned it. Dissolved it. It just... grows back."
+ },
+ {
+  "id": "04_w1",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "And it hates everything that's alive. Everything."
+ },
+ {
+  "id": "05_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Today they drain the acid for an interview. My job? Hold the microphone."
+ },
+ {
+  "id": "06_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The doctor asks it why it killed those farmers. It says nothing."
+ },
+ {
+  "id": "07_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then it whispers. Too quiet. Move the mic closer, he tells me."
+ },
+ {
+  "id": "08_w1",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "So I step closer. Its throat is torn open. It shouldn't be able to talk."
+ },
+ {
+  "id": "09_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Its eye opens. And it looks right at me."
+ },
+ {
+  "id": "10_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It says one word... disgusting."
+ },
+ {
+  "id": "11_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The alarms go off. The doctor is already running."
+ },
+ {
+  "id": "12_w1",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "And I'm still holding the microphone."
+ },
+ {
+  "id": "01_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "Assignment four. SCP-682. They call it the Hard-to-Destroy Reptile."
+ },
+ {
+  "id": "02_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "It lives in a steel chamber. Five meters across. Filled with acid... so it can't move."
+ },
+ {
+  "id": "03_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "They've shot it. Burned it. Dissolved it. It just... grows back."
+ },
+ {
+  "id": "04_w2",
+  "ref_wav": "/home/user/Animationator/voices/lastlight_whisper.wav",
+  "ref_text": "There's a store with no exits. And at ten p.m.... the lights go out. Then you see the staff. Tall. Silent. No faces.",
+  "text": "And it hates everything that's alive. Everything."
+ },
+ {
+  "id": "05_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Today they drain the acid for an interview. My job? Hold the microphone."
+ },
+ {
+  "id": "06_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The doctor asks it why it killed those farmers. It says nothing."
+ },
+ {
+  "id": "07_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then it whispers. Too quiet. Move the mic closer, he tells me."
+ },
+ {
+  "id": "08_w2",
+  "ref_wav": "../scp173/refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "So I step closer. Its throat is torn open. It shouldn't be able to talk."
+ },
+ {
+  "id": "09_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Its eye opens. And it looks right at me."
+ },
+ {
+  "id": "10_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It says one word... disgusting."
+ },
+ {
+  "id": "11_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The alarms go off. The doctor is already running."
+ },
+ {
+  "id": "12_w2",
+  "ref_wav": "../scp173/refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "And I'm still holding the microphone."
+ }
+]

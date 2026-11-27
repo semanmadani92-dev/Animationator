@@ -1,0 +1,86 @@
+[
+ {
+  "id": "06_w1",
+  "ref_wav": "refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The floor is always stained. Nobody tells us... with what."
+ },
+ {
+  "id": "07_w1",
+  "ref_wav": "refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Forty seconds... My eyes are burning."
+ },
+ {
+  "id": "08_w1",
+  "ref_wav": "refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Next to me... my partner whispers: I'm... blinking."
+ },
+ {
+  "id": "09_w1",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then the lights... flicker."
+ },
+ {
+  "id": "10_w1",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Something... scrapes across the floor."
+ },
+ {
+  "id": "11_w1",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It's closer now. And my eyes... they're watering."
+ },
+ {
+  "id": "12_w1",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Don't blink. Don't blink. Don't..."
+ },
+ {
+  "id": "06_w2",
+  "ref_wav": "refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "The floor is always stained. Nobody tells us... with what."
+ },
+ {
+  "id": "07_w2",
+  "ref_wav": "refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Forty seconds... My eyes are burning."
+ },
+ {
+  "id": "08_w2",
+  "ref_wav": "refs/nervous_1.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Next to me... my partner whispers: I'm... blinking."
+ },
+ {
+  "id": "09_w2",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Then the lights... flicker."
+ },
+ {
+  "id": "10_w2",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Something... scrapes across the floor."
+ },
+ {
+  "id": "11_w2",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "It's closer now. And my eyes... they're watering."
+ },
+ {
+  "id": "12_w2",
+  "ref_wav": "refs/terrified_2.wav",
+  "ref_text": "I can hear it moving in the dark. Every time the lights go out... it gets closer. Please. I can't keep my eyes open much longer.",
+  "text": "Don't blink. Don't blink. Don't..."
+ }
+]
