@@ -20,7 +20,7 @@ bash setup.sh voice    # also Qwen3-TTS + faster-whisper (only to record new lin
 
 ## Making an episode
 1. `script.json`: about 8 lines, about 40 s.
-2. `jobs.json` → `python ../../voices/tools/clone_lines.py <ep>/jobs.json <ep>/takes` (2 takes per line, CPU, slow).
+2. `jobs.json` → `python ../../toolkit/voice/tools/clone_lines.py <ep>/jobs.json <ep>/takes` (2 takes per line, CPU, slow).
 3. Pick the best take per line (whisper check for mispronounced words), then `python fake_tl.py` / timings → `tl.json`.
 4. Copy `scp049/index.html` as a template; build the set; check with `node shoot3d.js <ep> stills:1,5,10`.
 5. `python <ep>/build_audio.py ../kit` → `audio.wav`.
