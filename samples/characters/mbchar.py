@@ -131,20 +131,38 @@ for s, t in (("l", "L"), ("r", "R")):
 INV = {t: s for s, t in MAP.items()}
 
 
+MIXAMO = {"pelvis": "Hips", "spine_01": "Spine", "spine_02": "Spine1", "spine_03": "Spine2",
+          "neck_01": "Neck", "Head": "Head"}
+for s, t in (("l", "Left"), ("r", "Right")):
+    MIXAMO.update({f"clavicle_{s}": f"{t}Shoulder", f"upperarm_{s}": f"{t}Arm", f"lowerarm_{s}": f"{t}ForeArm",
+                   f"hand_{s}": f"{t}Hand", f"thigh_{s}": f"{t}UpLeg", f"calf_{s}": f"{t}Leg",
+                   f"foot_{s}": f"{t}Foot", f"ball_{s}": f"{t}ToeBase"})
+    for f, g in (("index", "Index"), ("middle", "Middle"), ("ring", "Ring"), ("pinky", "Pinky"), ("thumb", "Thumb")):
+        for i in (1, 2, 3): MIXAMO[f"{f}_0{i}_{s}"] = f"{t}Hand{g}{i}"
+MIXAMO = {k: "mixamorig:" + v for k, v in MIXAMO.items()}
+
+
 class Retarget:
-    def __init__(self, src, tgt):
+    def __init__(self, src, tgt, mapping=None, move=("root", "pelvis")):
+        """mapping: source bone -> target bone (default: MB-Lab names). move: source bones whose
+        position is transferred (scaled by hip height); all mapped bones get rotations."""
+        mapping = mapping or MAP
+        self.inv = {t: s for s, t in mapping.items()}
+        self.move = {mapping[m] for m in move if m in mapping}
         self.src, self.tgt = src, tgt
+        self.order = sorted(tgt.data.bones, key=lambda b: len(b.parent_recursive))
         sw, tw = src.matrix_world.to_3x3().normalized(), tgt.matrix_world.to_3x3().normalized()
         self.align = {}
         for tb in tgt.data.bones:
-            sname = INV.get(tb.name)
+            sname = self.inv.get(tb.name)
             if not sname or sname not in src.data.bones: continue
             S_rest = sw @ src.data.bones[sname].matrix_local.to_3x3()
             T_rest = tw @ tb.matrix_local.to_3x3()
             q = T_rest.col[1].rotation_difference(S_rest.col[1]).to_matrix()
             self.align[tb.name] = (sname, S_rest.inverted(), q @ T_rest)
-        sp = src.data.bones["pelvis"].head_local.z
-        tp = tgt.data.bones["pelvis"].head_local.z
+        hip_t = next(t for t in self.move if t in tgt.data.bones and self.inv[t] == "pelvis")
+        sp = (src.matrix_world @ src.data.bones["pelvis"].head_local).z - src.matrix_world.translation.z
+        tp = (tgt.matrix_world @ tgt.data.bones[hip_t].head_local).z - tgt.matrix_world.translation.z
         self.k = tp / sp
 
     def apply(self):
@@ -154,7 +172,7 @@ class Retarget:
         tw_inv = tgt.matrix_world.inverted()
         tw3_inv = tgt.matrix_world.to_3x3().normalized().inverted()
         posed = {}                                            # armature-space 4x4 of each target bone
-        for tb in tgt.data.bones:                             # parents come before children
+        for tb in self.order:                                 # parents before children
             pb = tgt.pose.bones[tb.name]
             if tb.parent:
                 base = posed[tb.parent.name] @ (tb.parent.matrix_local.inverted() @ tb.matrix_local)
@@ -168,8 +186,8 @@ class Retarget:
             else:
                 local_rot = Quaternion()
             loc = Vector()
-            if tb.name in ("root", "pelvis"):
-                s_head_w = src.matrix_world @ src.pose.bones[INV[tb.name]].head
+            if tb.name in self.move:
+                s_head_w = src.matrix_world @ src.pose.bones[self.inv[tb.name]].head
                 s_org, t_org = src.matrix_world.translation, tgt.matrix_world.translation
                 want_w = t_org + (s_head_w - s_org) * self.k
                 want = tw_inv @ want_w

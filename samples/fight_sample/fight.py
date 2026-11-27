@@ -282,7 +282,11 @@ S.view_settings.view_transform = "AgX"
 S.view_settings.look = "AgX - Medium High Contrast"
 S.render.image_settings.file_format = "PNG"
 
-if MODE == "preview":
+if MODE == "scene":            # just save the baked fight (used by ../jjk/fight_jjk.py)
+    S.render.resolution_x, S.render.resolution_y = 1280, 720
+    S.render.use_motion_blur = True; S.render.motion_blur_shutter = 0.5
+    bpy.ops.wm.save_as_mainfile(filepath=f"{OUT}/fight_scene.blend")
+elif MODE == "preview":
     S.render.resolution_x, S.render.resolution_y = 480, 270
     S.cycles.samples = 12
     frames = [int(a) for a in ARGS[2].split(",")] if len(ARGS) > 2 else list(range(0, END + 1, 8))
