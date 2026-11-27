@@ -12,7 +12,7 @@ Qwen3-TTS: free, runs on CPU.
 - **Make a new voice from a description:** `python voice/tools/design_voice.py text.txt out.wav "raspy old pirate, slow"`
 - **Say new lines in a saved voice:** `python voice/tools/clone_lines.py jobs.json out_dir/`
   (jobs.json: `[{"id":"l1","ref_wav":"voice/narrator.wav","ref_text":"<its words from voices.json>","text":"New line"}]`)
-- **Word timings for captions:** `python voice/tools/align.py audio.wav`
+- **Word timings for captions:** `python voice/tools/align.py script.json audio_dir/ out.json`
 - **Saved voices:** narrator, mark, reginald, vexmore, bumblewick, grub, lastlight_whisper (see `voices.json`).
 - **Rule:** don't clone real people's voices.
 
