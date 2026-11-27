@@ -1,0 +1,166 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden} #g{position:absolute;left:0;top:0;width:1080px;height:1920px} #c{position:absolute;left:0;top:0}</style>
+<script src="../ll.js"></script></head><body>
+<canvas id="g" width="1080" height="1920"></canvas>
+<svg id="c" width="1080" height="1920" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+<script type="importmap">{"imports":{"three":"../three.module.js","three/addons/":"../jsm/"}}</script>
+<script type="module">
+// SCP-049, low-poly 3D, told by D-4172. New format: cold open on its reaching hand, the danger in the first line, ~40 s, loops.
+import { THREE, load, loadMannequins, makeHuman, pose, makeRetro, makeRenderer, setFear, bodyFear } from '../kit3d.js';
+const renderer = makeRenderer(document.getElementById('g')), retro = makeRetro(renderer, 450, 800);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x040405); scene.fog = new THREE.FogExp2(0x040405, .06);
+const cam = new THREE.PerspectiveCamera(50, 1080 / 1920, .03, 60);
+let seed = 61; const R = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const lam = (c, o = {}) => new THREE.MeshLambertMaterial(Object.assign({ color: c, flatShading: true }, o));
+const shadowy = o => { o.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } }); return o; };
+const put = (parent, o, x = 0, y = 0, z = 0, ry = 0, s = 1) => { o.position.set(x, y, z); o.rotation.y = ry; if (typeof s === 'number') o.scale.setScalar(s); parent.add(shadowy(o)); return o; };
+const box = (w, h, d, c, o) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), lam(c, o));
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const asset = async p => (await load('../assets/props/' + p)).scene;
+function canvasTex(w, h, paint) { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; paint(cv.getContext('2d'), w, h); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.userData.cv = cv; return t; }
+function sign(lines, w, h, bg, fg, font) { const t = canvasTex(512, Math.round(512 * h / w), (x, W2, H2) => { x.fillStyle = bg; x.fillRect(0, 0, W2, H2); x.fillStyle = fg; x.textAlign = 'center'; x.font = font; lines.forEach((l, i) => x.fillText(l, W2 / 2, (i + 1) * H2 / (lines.length + 1) + 14)); });
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: t, transparent: bg === 'transparent' })); }
+const [wallP, doorP, frameP, crateP] = await Promise.all(['scifi_megakit/Walls/WallAstra_Straight.gltf', 'scifi_megakit/Platforms/Door_DarkMetal.gltf', 'scifi_megakit/Platforms/Door_Frame_SquareTall.gltf', 'scifi_megakit/Props/Prop_Crate3.gltf'].map(asset));
+
+// =========== the cell: tiled, clinical, dirty ===========
+const A = new THREE.Group(); scene.add(A);
+{ const g = new THREE.PlaneGeometry(6, 6, 12, 12).toNonIndexed(); g.rotateX(-Math.PI / 2); const c = new Float32Array(g.attributes.position.count * 3);
+  for (let f = 0; f < c.length / 9; f++) { const k = .8 + R() * .25; for (let j = 0; j < 3; j++) c.set([.5 * k, .52 * k, .5 * k], f * 9 + j * 3); } g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  put(A, new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }))); }
+for (const [w, x, z, ry] of [[6, 0, -3, 0], [6, -3, 0, Math.PI / 2], [6, 3, 0, -Math.PI / 2], [6, 0, 3, Math.PI]]) {
+  const g = new THREE.Group(); put(A, g, x, 0, z, ry);
+  for (let a = 0; a < 20; a++) for (let b = 0; b < 10; b++) { const v = b < 3 ? .5 + R() * .15 : .66 + R() * .1; const tile = new THREE.Mesh(new THREE.BoxGeometry(.29, .29, .02), lam(new THREE.Color(v, v * 1.02, v * .98))); tile.position.set(-3 + .15 + a * .3, .15 + b * .3, 0); g.add(tile); }
+}
+put(A, box(6, .1, 6, 0x2a2b2d), 0, 3.05, 0);
+// operating table, the covered body, a monitor, the surgical lamp
+const opT = new THREE.Group(); put(A, opT, -1.2, 0, -1.2, .1);
+put(opT, box(.8, .08, 2.0, 0x8a9094), 0, .85, 0); for (const [x, z] of [[-.3, -.85], [.3, -.85], [-.3, .85], [.3, .85]]) put(opT, box(.05, .85, .05, 0x5a6064), x, .42, z);
+const sheet = new THREE.Mesh(new THREE.BoxGeometry(.75, .06, 1.9, 4, 1, 8), lam(0xd8d8d0)); { const p = sheet.geometry.attributes.position; for (let i = 0; i < p.count; i++) if (p.getY(i) > 0) p.setY(i, p.getY(i) + Math.max(0, .14 - Math.abs(p.getX(i)) * .35) * (Math.abs(p.getZ(i)) < .8 ? 1 : .5)); sheet.geometry.computeVertexNormals(); }
+put(opT, sheet, 0, 1.0, 0); const blood = put(opT, new THREE.Mesh(new THREE.CircleGeometry(.12, 7), lam(0x5a1410)), .05, 1.04, .1); blood.rotation.x = -Math.PI / 2;
+const ecgTex = canvasTex(256, 160, () => {}), monitor = new THREE.Group(); put(A, monitor, -.2, 0, -2.3, -.3);
+put(monitor, box(.05, 1.1, .05, 0x4a4e52), 0, .55, 0); put(monitor, box(.5, .36, .12, 0x1a1a1c), 0, 1.25, 0);
+const ecg = new THREE.Mesh(new THREE.PlaneGeometry(.44, .3), new THREE.MeshBasicMaterial({ map: ecgTex })); ecg.position.set(0, 1.25, .065); monitor.add(ecg);
+const lampG = new THREE.Group(); put(A, lampG, -1.2, 2.6, -1.2); put(lampG, new THREE.Mesh(new THREE.CylinderGeometry(.35, .45, .15, 10), lam(0xb0b4b8)), 0, 0, 0); put(lampG, box(.04, .5, .04, 0x5a5e62), 0, .3, 0);
+const sLamp = new THREE.SpotLight(0xf4f8ff, 60, 8, .55, .45, 1.2); sLamp.position.set(-1.2, 2.5, -1.2); sLamp.target.position.set(-1.2, .9, -1.2); sLamp.castShadow = true; sLamp.shadow.mapSize.set(1024, 1024); A.add(sLamp, sLamp.target);
+// the interview table and chairs
+put(A, box(1.2, .06, .8, 0x6a6258), 1.2, .76, 1.0); put(A, box(1.1, .74, .05, 0x4a443c), 1.2, .38, 1.38);
+const chair = (x, z, ry) => { const g = new THREE.Group(); put(g, box(.45, .05, .45, 0x2a2a2c), 0, .46, 0); put(g, box(.45, .5, .05, 0x2a2a2c), 0, .72, -.2); for (const [a, b] of [[-.2, -.2], [.2, -.2], [-.2, .2], [.2, .2]]) put(g, box(.03, .46, .03, 0x1a1a1a), a, .23, b); return put(A, g, x, 0, z, ry); };
+chair(1.2, 1.75, Math.PI);
+// the black bag: a lid that opens, tools inside
+const bag = new THREE.Group(); put(A, bag, 1.0, .79, .85, .3);
+put(bag, box(.42, .22, .2, 0x141210), 0, .11, 0); const lid = new THREE.Group(); lid.position.set(0, .22, -.1); bag.add(lid); put(lid, box(.42, .03, .2, 0x1c1a18), 0, 0, .1);
+for (let i = 0; i < 5; i++) { const tl = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .22, 4), lam(0xc8ccd0)); tl.position.set(-.14 + i * .07, .2, 0); tl.rotation.z = (i - 2) * .12; bag.add(tl); }
+put(A, sign(['SCP-049', 'NO HUMAN SUBJECTS'], 1.2, .4, '#d8c23a', '#151515', 'bold 54px Inter, Arial'), -2.98, 2.1, .8, Math.PI / 2);
+put(A, sign(['LAVENDER', 'IN CASE OF AGITATION'], 1.0, .34, '#7a5aa8', '#f4f4f4', 'bold 46px Inter, Arial'), 2.98, 1.6, -1.2, -Math.PI / 2);
+put(A, frameP.clone(), 1.2, 0, 2.95, Math.PI, .55); const cellDoor = put(A, doorP.clone(), 1.2, 0, 2.97, Math.PI, .55);
+const cLight = new THREE.PointLight(0xe8f0ff, 9, 9, 1.3); cLight.position.set(1, 2.8, .8); A.add(cLight);
+const aHemi = new THREE.HemisphereLight(0x7a8498, 0x141210, .55); A.add(aHemi);
+
+// =========== the corridor in a blackout (x = 40), along -z ===========
+const C = new THREE.Group(); C.position.set(40, 0, 0); scene.add(C);
+const CW = 1.4, CL = 24, KIT = .8;
+put(C, box(CW * 2, .1, CL, 0x2a2b2e), 0, -.05, -CL / 2 + 2); put(C, box(CW * 2, .1, CL, 0x151617), 0, 2.5, -CL / 2 + 2);
+for (let z = 2; z > -CL + 2; z -= 4 * KIT) { put(C, wallP.clone(), -CW, 0, z - 2 * KIT, 0, KIT); put(C, wallP.clone(), CW, 0, z - 2 * KIT, Math.PI, KIT); }
+put(C, crateP.clone(), .7, 0, -3.2, .3, .55); put(C, crateP.clone(), .75, .55, -3.25, .1, .45);
+const emerg = [-2, -8, -14, -20].map(z => { const l = new THREE.PointLight(0xff2a18, 6, 8, 1.3); l.position.set(-CW + .3, 2.2, z); C.add(l); put(C, new THREE.Mesh(new THREE.BoxGeometry(.2, .08, .1), new THREE.MeshBasicMaterial({ color: 0xff3020 })), -CW + .15, 2.25, z); return l; });
+put(C, frameP.clone(), 0, 0, -CL + 2.3, 0, .55);
+const cHemi = new THREE.HemisphereLight(0x3a4458, 0x000000, .55); C.add(cHemi);
+
+// =========== people ===========
+const lib = await loadMannequins();
+const me = makeHuman(lib, { number: 'D-4172' }); scene.add(shadowy(me.root));
+// SCP-049: robes, hood, the ceramic beaked mask, black bag; built on the mannequin
+function plagueDoctor() {
+  const h = makeHuman(lib, { suit: 0x1c1a18, skin: 0x0e0e0e, boots: 0x111111, number: '', face: false });
+  const hc = h.head.getCenter(new THREE.Vector3()), hs = h.head.getSize(new THREE.Vector3()), head = h.bone('Head');
+  const att = (o, x, y, z) => { o.position.set(x, y, z); h.root.add(o); head.attach(o); shadowy(o); return o; };
+  const ceramic = lam(0xe8e2d4);
+  const plate = att(new THREE.Mesh(new THREE.SphereGeometry(.5, 9, 7), ceramic), hc.x, hc.y, hc.z + hs.z * .42); plate.scale.set(hs.x * 1.0, hs.y * .95, hs.z * .7);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(hs.x * .26, hs.z * 1.9, 7), ceramic); beak.rotation.x = Math.PI / 2 + .35; att(beak, hc.x, hc.y - hs.y * .12, hc.z + hs.z * 1.15);
+  for (const sx of [-1, 1]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(hs.x * .13, hs.x * .035, 4, 10), lam(0x8a6a2a)); att(ring, hc.x + sx * hs.x * .2, hc.y + hs.y * .08, hc.z + hs.z * .55);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(hs.x * .12, 10), new THREE.MeshBasicMaterial({ color: 0x050607 })); att(lens, hc.x + sx * hs.x * .2, hc.y + hs.y * .08, hc.z + hs.z * .56); }
+  const hood = new THREE.Mesh(new THREE.SphereGeometry(.5, 9, 7, 0, Math.PI * 2, 0, Math.PI * .62), lam(0x161412)); hood.scale.set(hs.x * 1.3, hs.y * 1.3, hs.z * 1.2); att(hood, hc.x, hc.y + hs.y * .08, hc.z - hs.z * .3);
+  const drape = new THREE.Mesh(new THREE.ConeGeometry(hs.x * 1.1, hs.y * 1.1, 9, 1, true), lam(0x161412, { side: THREE.DoubleSide })); att(drape, hc.x, hc.y - hs.y * .55, hc.z - hs.z * .05);
+  // the robe from the waist to the floor (on the root, so it hides the legs)
+  const robe = new THREE.Mesh(new THREE.CylinderGeometry(.24, .5, 1.0, 10, 1, true), lam(0x181614, { side: THREE.DoubleSide })); robe.position.y = .5; h.root.add(shadowy(robe));
+  const bagH = new THREE.Mesh(new THREE.BoxGeometry(.3, .18, .14), lam(0x141210)); h.bone('hand_l').add(bagH); bagH.position.set(0, .12, .05);
+  h.root.scale.set(1.04, 1.06, 1.04); h.bagH = bagH; h.robe = robe; return h;
+}
+const doc = plagueDoctor(); scene.add(doc.root);
+const docRim = new THREE.PointLight(0xaab8e0, 0, 4, 1.4); scene.add(docRim);  // so it reads as a shape in the blackout
+const faceFill = new THREE.PointLight(0xdfe6ff, 0, 3, 1.4); scene.add(faceFill);  // a cold light on the mask in the reach shots
+// SCP-049-2: the body on the table
+const body2 = makeHuman(lib, { suit: 0x8a9488, skin: 0x8a9a84, boots: 0x6a7068, number: '' }); scene.add(shadowy(body2.root));
+
+window.ready = true;
+const SHOW = g => { A.visible = g === A; C.visible = g === C; };
+window.draw = function (t) {
+  tNow = t; const L = id => ln(id), W_ = (id, re) => wordT(id, re), S = (a, b) => t >= a && t < b;
+  const tEnd = L('08').end, stopT = W_('04', /stops/i), bagT = W_('05', /opens/i), riseT = W_('06', /get/i) - .2, darkT = W_('07', /power/i);
+  // ---- SCP-049 and D-4172 in the cell (lines 2 to 6); the corridor after
+  const inCell = t < L('07').start;
+  let docSegs = [{ clip: 'Idle_Loop', t0: -9 }], meSegs = [{ clip: 'Sitting_Idle_Loop', t0: -9 }], fear = .35, tears = 0, flinch = 0;
+  let docPos = V(1.2, 0, .2), docRot = 0, mePos = V(1.2, 0, 1.75), meRot = Math.PI;
+  if (S(L('03').start, L('04').start)) { const k = clamp((t - L('03').start) / 1.2); docPos = V(1.2, 0, lerp(.2, .62, k)); fear = .6; }   // it leans in to smell him
+  if (S(L('04').start, L('07').start)) { docPos = V(-.45, 0, -1.25); docRot = -Math.PI / 2 - .1; docSegs = [{ clip: 'Idle_Loop', t0: -9 }, { clip: 'Fixing_Kneeling', t0: 999 }]; }
+  if (S(bagT - .4, L('07').start)) docSegs = [{ clip: 'Interact', t0: bagT - .4, hold: true }];
+  if (!inCell) { // the corridor: he hides behind the crates, it walks slowly toward him
+    const u = t - L('07').start; mePos = V(40 + .25, 0, -3.9); meRot = 0; meSegs = [{ clip: 'Crouch_Idle_Loop', t0: -9 }]; fear = 1; tears = .6;
+    docPos = V(40 - .2, 0, lerp(-17, -6.5, clamp(u / (tEnd - L('07').start)))); docRot = 0; docSegs = [{ clip: 'Walk_Formal_Loop', t0: L('07').start, speed: .75 }];
+  }
+  // the cold open and the last beat are the same shot: its hand reaching for the camera
+  const reach = t < L('01').end + .2 || t >= tEnd - 1.2;
+  if (reach) { docPos = V(1.2, 0, .3); docRot = 0; docSegs = [{ clip: 'Pistol_Aim_Neutral', t0: -9 }]; if (!inCell) { docPos = V(40 + .1, 0, -5.4); } }
+  if (t >= W_('03', /pestilence/i)) flinch = Math.exp(-(t - W_('03', /pestilence/i)) * 4);
+  me.root.position.copy(mePos); me.root.rotation.y = meRot; doc.root.position.copy(docPos); doc.root.rotation.y = docRot;
+  pose(me, meSegs, t); pose(doc, docSegs, t); setFear(me, fear, t, tears); bodyFear(me, fear, t, flinch);
+  doc.bone('Head').rotation.z += S(L('03').start, L('04').start) ? Math.sin(t * 2) * .15 : 0;   // a slow, curious tilt
+  // the body under the sheet; it sits up when "they get back up"
+  body2.root.position.set(-1.2 + .02, .9, -1.2 - .9); body2.root.rotation.set(0, .1, 0);
+  const risen = t >= riseT;
+  pose(body2, [{ clip: 'LayToIdle', t0: risen ? riseT : -9, hold: true, speed: risen ? .8 : 0 }], risen ? t : -8.99);
+  body2.root.visible = inCell; sheet.position.set(risen ? -.55 : 0, risen ? lerp(1.0, .1, clamp((t - riseT) / .5)) : 1.0, 0); sheet.rotation.z = risen ? -clamp((t - riseT) / .5) * 1.2 : 0;
+  if (risen) { body2.root.updateMatrixWorld(true); setFear(body2, 0, t); }
+  // the bag opens
+  lid.rotation.x = t >= bagT ? -clamp((t - bagT) / .5) * 1.8 : 0;
+  // heart monitor: beeping, then flat at "stops"
+  { const x = ecgTex.userData.cv.getContext('2d'); x.fillStyle = '#04100a'; x.fillRect(0, 0, 256, 160); x.strokeStyle = '#3cff7a'; x.lineWidth = 3; x.beginPath();
+    const flat = t >= stopT && t < riseT, back = t >= riseT;
+    for (let i = 0; i <= 256; i += 2) { const ph = ((i / 256) * 3 + t * (back ? 2.4 : 1.2)) % 1; let y = 90;
+      if (!flat && (ph > .45 && ph < .55)) y = 90 - Math.sin((ph - .45) / .1 * Math.PI) * (back ? 70 : 50) * (back ? (Math.sin(i) > 0 ? 1 : -.6) : 1);
+      i === 0 ? x.moveTo(i, y) : x.lineTo(i, y); } x.stroke();
+    x.fillStyle = '#3cff7a'; x.font = 'bold 26px Inter, Arial'; x.fillText(flat ? '0' : back ? '???' : '72', 190, 36); ecgTex.needsUpdate = true; }
+  // lights: the blackout
+  const dark = t >= darkT; cLight.intensity = 9; sLamp.intensity = 60;
+  emerg.forEach((l, i) => l.intensity = 6 * (Math.sin(t * 2 + i) > -.6 ? 1 : .4));
+  // ---- camera
+  let pos, look, fov = 50, burn = 0, shake = 0, set = inCell ? A : C;
+  const hp = me.bone('Head').getWorldPosition(new THREE.Vector3()).add(V(0, .1, 0)), dh = doc.bone('Head').getWorldPosition(new THREE.Vector3()), hand = doc.bone('hand_r').getWorldPosition(new THREE.Vector3());
+  if (reach) { const f = V(Math.sin(doc.root.rotation.y), 0, Math.cos(doc.root.rotation.y)); pos = dh.clone().addScaledVector(f, 1.25).add(V(.12, -.08, 0)); look = hand.clone().lerp(dh, .5); fov = 46; burn = .35; shake = .004; }
+  else if (t < L('03').start) { const k = prog('02'); pos = V(lerp(-1.9, -1.5, k), 1.75, 1.0); look = V(1.2, 1.05, 1.0); fov = 58; }
+  else if (t < L('04').start) { if (t < W_('03', /pestilence/i)) { pos = V(1.75, 1.9, -.25); look = hp.clone().lerp(dh, .3); fov = 48; } else { pos = hp.clone().add(V(.1, .02, -.62)); look = hp.clone(); fov = 40; } burn = .2; }
+  else if (t < L('05').start) { if (t < stopT) { pos = V(.6, 1.6, .2); look = V(-1.2, 1.0, -1.4); fov = 52; } else { pos = V(-.25, 1.3, -1.6); look = V(-.2, 1.25, -2.3); fov = 34; } }
+  else if (t < L('06').start) { pos = V(1.7, 1.25, .25); look = V(1.0, .85, .85); fov = 40; }
+  else if (t < L('07').start) { pos = V(-2.4, 1.55, .3); look = V(-1.2, 1.05, -1.5); fov = 50; shake = t > riseT ? .006 : 0; burn = t > riseT ? .3 : 0; }
+  else { const k = (t - L('07').start); if (t < L('08').start) { pos = V(40 + .9, 1.0, -2.6); look = V(40 + .2, .7, -3.9); fov = 50; } else { pos = hp.clone().add(V(.05, .05, -.15)); look = V(40 - .2, 1.4, doc.root.position.z); fov = 44; burn = .4; shake = .004; } }
+  if (!inCell && reach) set = C;
+  SHOW(set); me.root.visible = !reach || !inCell ? true : false; if (reach && inCell) me.root.visible = false;
+  faceFill.position.copy(pos).add(V(0, .4, 0)); faceFill.intensity = reach ? 1.6 : (set === C ? 1.2 : 0); docRim.position.copy(doc.root.position).add(V(.3, 2.1, .8)); docRim.intensity = set === C ? 2.5 : 0;
+  pos.add(V(Math.sin(t * 13) * shake, Math.sin(t * 9.7) * shake, 0));
+  cam.fov = fov; cam.updateProjectionMatrix(); cam.position.copy(pos); cam.lookAt(look);
+  window._dbg = { me: me.root.position.toArray().map(v => +v.toFixed(2)), meVis: me.root.visible, head: hp.toArray().map(v => +v.toFixed(2)) };
+  if (window.DBGCAM) { const d = window.DBGCAM; if (d[2] === 1) scene.overrideMaterial = new THREE.MeshNormalMaterial(); cam.position.set(...d[0]); cam.lookAt(...d[1]); cam.fov = 60; cam.updateProjectionMatrix(); }
+  retro.u.burn.value = burn; retro.render(scene, cam, t);
+  // ---- HUD (kept small: the hook is the image and the first line)
+  let hud = '', over = '';
+  if (S(L('02').start, L('03').start)) hud = title('SCP-049', 'EUCLID') + T('NARRATED BY', 80, 330, 24, .55, 300, 8) + T('D-4172', 80, 372, 32, .9, 300, 10, 'start', '#f0a060');
+  else if (S(L('03').start, L('04').start)) hud = T('DIAGNOSIS', 80, 330, 26, .7, 300, 8) + T('PESTILENCE', 80, 390, 44, blink(t), 300, 8, 'start', '#ff8080');
+  else if (S(stopT, L('05').start)) hud = T('HEART RATE', 80, 330, 26, .7, 300, 8) + T('0', 80, 400, 64, 1, 200, 8, 'start', '#ff8080');
+  else if (S(L('06').start, L('07').start)) hud = T('STATUS', 80, 330, 26, .7, 300, 8) + T(t >= riseT ? 'SCP-049-2' : '"CURED"', 80, 390, 44, 1, 300, 8, 'start', t >= riseT ? '#ff8080' : '#9fe0a0');
+  else if (S(L('07').start, tEnd - 1.2)) hud = T('POWER', 80, 330, 26, .7, 300, 8) + T('OFFLINE', 80, 390, 44, blink(t), 300, 8, 'start', '#ff8080') + T('CELL 049   OPEN', 80, 445, 26, .8, 300, 8, 'start', '#ff8080');
+  if (S(L('01').start - .05, L('01').start + .12)) over += `<rect width="${W}" height="${H}" fill="#fff" opacity=".35"/>`;
+  if (t >= tEnd + .1) { over += `<rect width="${W}" height="${H}" fill="#000"/>`; hud = ''; }
+  let g = DEFS(t) + `<rect width="${W}" height="${H}" fill="url(#vig)" opacity=".45"/>` + over + hud + caption(t) + endCard(t, TL.cardAt);
+  document.getElementById('c').innerHTML = g;
+};
+</script></body></html>
