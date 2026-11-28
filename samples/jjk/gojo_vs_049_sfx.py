@@ -9,11 +9,16 @@ the sizzle and ember crackle of the vaporise, and the wind after.
 import sys, wave
 import numpy as np
 
-SR, FPS, END = 48000, 30, 292                       # frame timings mirror gojo_vs_049.py
+SR, FPS = 48000, 30                                  # frame timings mirror gojo_vs_049.py
 WALK_END, REACH, PUSH, REPEL, FLY_END = 64, 50, 66, 100, 116
-T_BLUE, T_RED, T_SPIRAL, T_MERGE = 120, 134, 152, 178
-SHOOT, LAUNCH, HIT = 194, 197, 207
-CUT1, CUT2 = HIT + 3, 260                            # camera cuts
+CALL, RISE, ROAR, CHARGE, LAPSE, CRUSH = 122, 136, 196, 214, 228, 262
+RUSH, RED_CAST, RED_HIT, LAND, GETUP = 286, 298, 303, 320, 330
+O = 250
+T_BLUE, T_RED, T_SPIRAL, T_MERGE = 120 + O, 134 + O, 152 + O, 178 + O
+SHOOT, LAUNCH, HIT = 194 + O, 197 + O, 207 + O
+END = 292 + O
+ZDELAY = (0, 6, 12)
+CUT1, CUT2 = HIT + 3, 260 + O                        # camera cuts
 sec = lambda f: f / FPS
 DUR = sec(END + 1)
 N = int(DUR * SR)
@@ -155,6 +160,53 @@ add(sweep(noise(), 2500, 300, q=1.5) * env(tr, tr + 0.03, sec(FLY_END) - 0.1, se
 tf = sec(FLY_END)                                                         # 049 hits the floor
 add(band(noise(), 40, 900) * decay(tf, 0.18, 0.003), 0.9)
 add(osc(55) * decay(tf, 0.2), 0.5)
+
+# ------------------------------------------------------------------ 049 raises the dead
+tc = sec(CALL)
+ritual = env(tc, tc + 0.4, sec(CHARGE) - 0.3, sec(CHARGE))
+add(np.stack([band(osc(36 + 2 * np.sin(2 * np.pi * 0.2 * t), "saw"), 0, 220), band(osc(36.4, "saw"), 0, 220)]) * ritual, 0.35)
+for b in range(int(sec(CALL) * 1.4), int(sec(CHARGE) * 1.4)):          # heartbeat
+    t0 = b / 1.4
+    for dt, g in ((0, 1), (0.16, 0.6)): add(osc(48) * decay(t0 + dt, 0.09, 0.005), 0.55 * g)
+siren = osc(700 + 220 * np.sin(2 * np.pi * 0.55 * t)) * env(tc, tc + 0.3, sec(T_BLUE) - 0.5, sec(T_BLUE) - 0.1)
+add(np.stack([band(siren, 400, 3000), np.roll(band(siren, 400, 3000), 2400)]), 0.035)
+for k, dl in enumerate(ZDELAY):                                         # bones cracking as each body gets up
+    for _ in range(14):
+        t0 = rng.uniform(sec(RISE + dl), sec(RISE + dl + 48))
+        add(band(noise(), 1200, 7000) * decay(t0, 0.015, 0.001), rng.uniform(0.25, 0.6), (-0.4, 0.4, -0.1)[k])
+def growl(t0, dur, f0, p):
+    e = env(t0, t0 + 0.08, t0 + dur - 0.25, t0 + dur)
+    v = np.tanh(3 * osc(f0 * (1 + 0.06 * np.sin(2 * np.pi * 7 * t)), "saw")) + 0.8 * band(noise(), 200, 1500)
+    add(sweep(v * e, 500, 900, q=4) + band(v * e, 80, 600) * 0.5, 0.45, p)
+for k, (f0, p) in enumerate(((92, -0.4), (78, 0.4), (105, -0.1))):
+    growl(sec(ROAR + 2 * k), 0.75, f0, p)
+for k in range(3):                                                      # sprinting feet
+    for f in range(CHARGE + 2 + k * 2, LAPSE + 8, 5):
+        add(band(noise(), 100, 2500) * decay(sec(f), 0.04, 0.002), 0.35, (-0.4, 0.4, -0.1)[k])
+
+# ------------------------------------------------------------------ Lapse Blue: suction, then the crush
+tlp, tcr = sec(LAPSE), sec(CRUSH)
+add(bell * decay(tlp, 0.8), 0.25)
+suck = env(tlp, tlp + 0.15, tcr - 0.05, tcr)
+add(sweep(noise(), 200, 3500, q=2.5) * suck * (0.4 + 0.6 * smooth((t - tlp) / (tcr - tlp))), 0.6)
+add(band(noise(), 25, 90) * suck, 0.6)
+add(osc(220 * (1 + smooth((t - tlp) / (tcr - tlp)))) * suck * 0.5, 0.06)
+add(osc(np.maximum(30, 140 * np.exp(-np.maximum(t - tcr, 0) * 6))) * decay(tcr, 0.5), 1.0)
+add(band(noise(), 0, 3000) * decay(tcr, 0.2, 0.002), 0.9)
+add(np.stack([crackle(700 * decay(tcr, 0.25), 500), crackle(700 * decay(tcr, 0.25), 500)]), 0.6)
+
+# ------------------------------------------------------------------ 049 charges; Reversal Red
+for f in range(RUSH + 2, RED_HIT, 4):
+    add(band(noise(), 80, 2000) * decay(sec(f), 0.04, 0.002), 0.5)
+trc, trh = sec(RED_CAST), sec(RED_HIT)
+add(band(noise(), 60, 600) * decay(trc - 0.1, 0.25, 0.03), 0.7)
+add(sweep(noise(), 600, 3000, q=2) * env(trc, trc + 0.03, trh - 0.02, trh), 0.6)
+add(osc(np.maximum(30, 110 * np.exp(-np.maximum(t - trh, 0) * 4))) * decay(trh, 0.7), 1.1)
+add(band(noise(), 0, 6000) * decay(trh, 0.3, 0.002), 1.0)
+add(np.stack([crackle(800 * decay(trh, 0.35), 900), crackle(800 * decay(trh, 0.35), 900)]), 0.7)
+tld = sec(LAND)
+add(band(noise(), 40, 900) * decay(tld, 0.2, 0.003), 0.9); add(osc(50) * decay(tld, 0.25), 0.6)
+add(band(noise(), 300, 3000) * env(sec(GETUP), sec(GETUP) + 0.3, sec(GETUP) + 1.2, sec(GETUP) + 1.6), 0.12)
 
 # ------------------------------------------------------------------ impact
 th = sec(HIT)

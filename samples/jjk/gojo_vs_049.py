@@ -20,9 +20,15 @@ S = bpy.context.scene
 # ---------------------------------------------------------------- timing (frames, 30 fps)
 WALK_END, REACH, PUSH = 64, 50, 66          # 049 arrives, raises its hand, pushes on Infinity
 REPEL, FLY_END = 100, 116                   # Gojo flicks it away; it lands
-T_BLUE, T_RED, T_SPIRAL, T_MERGE = 120, 134, 152, 178
-SHOOT, LAUNCH, HIT, EXIT = 194, 197, 207, 234
-END = 292
+CALL, RISE, ROAR, CHARGE = 122, 136, 196, 214   # 049 raises the D-class it "cured"; they roar and charge
+LAPSE, CRUSH = 228, 262                     # Lapse Blue pulls them into one point and crushes them
+RUSH, RED_CAST, RED_HIT, LAND, GETUP = 286, 298, 303, 320, 330   # 049 charges; Reversal Red throws it back
+O = 250                                     # the Hollow Purple finish (same as the short cut, shifted)
+T_BLUE, T_RED, T_SPIRAL, T_MERGE = 120 + O, 134 + O, 152 + O, 178 + O
+SHOOT, LAUNCH, HIT, EXIT = 194 + O, 197 + O, 207 + O, 234 + O
+END = 292 + O
+B_PT = Vector((0.0, -2.6, 1.15))            # where Lapse Blue opens
+ZOMBIES = [(-1.7, -4.6, 0), (1.9, -5.4, 6), (-1.1, -8.2, 12)]   # D-class bodies: x, y, rise delay
 DIST = 7.0                                  # where 049 ends up after the repel
 STOP = 1.12                                 # how close 049 gets (m)
 BLUE, RED, PURPLE = (0.12, 0.38, 1.0), (1.0, 0.07, 0.04), (0.62, 0.16, 1.0)
@@ -121,8 +127,11 @@ for o in doc_mesh:
 doc.rotation_mode = "XYZ"; doc.rotation_euler.z = math.pi
 A = [(L.clip(ACT["Idle_Loop"], 0, loop=True), lambda t: 1),
      (L.clip(ACT["Spell_Simple_Shoot"], REPEL - 6, speed=1.3), lambda t: env(t, REPEL - 7, REPEL - 4, REPEL + 8, REPEL + 14)),
-     (L.clip(ACT["Spell_Simple_Enter"], 112), lambda t: env(t, 112, 114, EXIT, EXIT + 4)),
-     (L.clip(ACT["Spell_Simple_Idle_Loop"], 126, loop=True), lambda t: env(t, 124, 127, SHOOT, SHOOT + 2)),
+     (L.clip(ACT["Spell_Simple_Shoot"], LAPSE - 4, speed=0.9), lambda t: env(t, LAPSE - 5, LAPSE - 2, LAPSE + 8, LAPSE + 12)),
+     (L.clip(ACT["Spell_Simple_Idle_Loop"], LAPSE + 8, loop=True), lambda t: env(t, LAPSE + 8, LAPSE + 12, CRUSH + 2, CRUSH + 10)),
+     (L.clip(ACT["Spell_Simple_Shoot"], RED_CAST - 6, speed=1.3), lambda t: env(t, RED_CAST - 7, RED_CAST - 4, RED_HIT + 8, RED_HIT + 14)),
+     (L.clip(ACT["Spell_Simple_Enter"], T_BLUE - 8), lambda t: env(t, T_BLUE - 8, T_BLUE - 6, EXIT, EXIT + 4)),
+     (L.clip(ACT["Spell_Simple_Idle_Loop"], T_BLUE + 6, loop=True), lambda t: env(t, T_BLUE + 4, T_BLUE + 7, SHOOT, SHOOT + 2)),
      (L.clip(ACT["Spell_Simple_Shoot"], SHOOT, speed=0.8), lambda t: env(t, SHOOT, SHOOT + 2, SHOOT + 17, SHOOT + 20)),
      (L.clip(ACT["Spell_Simple_Exit"], EXIT, speed=0.8), lambda t: env(t, EXIT, EXIT + 2, EXIT + 15, EXIT + 22))]
 B0 = [(L.clip(ACT["Walk_Formal_Loop"], 0, loop=True), lambda t: 1),
@@ -131,20 +140,96 @@ AIM = {k: v for k, v in L.sample(ACT["Pistol_Aim_Neutral"], 10).items() if k in 
 reach = lambda t: {**L.pose_at(B0, t), **AIM}          # only the right arm reaches out; fingers stay open
 B = B0 + [(reach, lambda t: env(t, REACH, PUSH, REPEL - 1, REPEL + 1)),
      (L.clip(ACT["Hit_Knockback_RM"], REPEL, speed=0.7, root_scale=0.0), lambda t: env(t, REPEL, REPEL + 2, FLY_END + 18, FLY_END + 30)),
-     (L.clip(ACT["Idle_Loop"], 30, loop=True), lambda t: env(t, FLY_END + 18, FLY_END + 30))]
+     (L.clip(ACT["Idle_Loop"], 30, loop=True), lambda t: env(t, FLY_END + 18, FLY_END + 30)),
+     (L.clip(ACT["Spell_Simple_Enter"], CALL), lambda t: env(t, CALL, CALL + 4, ROAR, ROAR + 10)),       # raises the dead
+     (L.clip(ACT["Spell_Simple_Idle_Loop"], CALL + 12, loop=True), lambda t: env(t, CALL + 10, CALL + 14, ROAR, ROAR + 10)),
+     (L.clip(ACT["Sprint_Loop"], RUSH, loop=True, speed=1.1), lambda t: env(t, RUSH - 3, RUSH + 2, RED_HIT - 1, RED_HIT + 1)),
+     (L.clip(ACT2["Hit_Knockback"], RED_HIT, speed=1.1), lambda t: env(t, RED_HIT - 1, RED_HIT + 1, GETUP - 1, GETUP)),
+     (L.clip(ACT2["LayToIdle"], GETUP, speed=0.8), lambda t: env(t, GETUP - 1, GETUP, GETUP + 44, GETUP + 52)),
+     (L.clip(ACT["Idle_Loop"], 0, loop=True), lambda t: env(t, GETUP + 44, GETUP + 52))]
 L.bake(srcA, A, 0, END)
 L.bake(doc, B, 0, END)
 srcA.hide_render = True
-for t in range(0, END + 1):                 # 049's path: walk in, stop, thrown back, then stands its ground
+D_HIT = 2.3                                  # where Reversal Red catches 049
+for t in range(0, END + 1):                 # 049's path: walk in, stop, thrown back, charges, thrown back again
+    z = 0
     if t <= WALK_END:
         y = -6.4 + (6.4 - STOP) * (t / WALK_END) - 0.03 * sm((t - WALK_END + 8) / 8)
         y = min(y, -STOP)
     elif t < REPEL:
         y = -STOP - 0.02 * math.sin((t - PUSH) * 1.7) * (t > PUSH)
-    else:
+    elif t < RUSH:
         y = -STOP - (DIST - STOP) * (1 - (1 - min(1, (t - REPEL) / (FLY_END - REPEL))) ** 2.2)
-    z = 0.35 * math.sin(math.pi * min(1, max(0, (t - REPEL) / (FLY_END - REPEL)))) if REPEL <= t <= FLY_END else 0
+        if t <= FLY_END: z = 0.35 * math.sin(math.pi * (t - REPEL) / (FLY_END - REPEL))
+    elif t < RED_HIT:
+        y = -DIST + (DIST - D_HIT) * ((t - RUSH) / (RED_HIT - RUSH)) ** 1.25
+    else:
+        u = min(1, (t - RED_HIT) / (LAND - RED_HIT))
+        y = -D_HIT - (DIST - D_HIT) * (1 - (1 - u) ** 2.2)
+        z = 0.55 * math.sin(math.pi * u)
     doc.location = (0, y, z); doc.keyframe_insert("location", frame=t)
+
+
+# ---------------------------------------------------------------- the D-class 049 "cured": they get up and charge
+def zombie_mat():
+    m, nt, out = V.nodes_mat("DClassZombie")
+    b = nt.nodes.new("ShaderNodeBsdfPrincipled"); b.inputs["Roughness"].default_value = 0.75
+    at = nt.nodes.new("ShaderNodeAttribute"); at.attribute_name = "skin"; at.attribute_type = "GEOMETRY"
+    mx = nt.nodes.new("ShaderNodeMix"); mx.data_type = "RGBA"
+    mx.inputs[6].default_value = (0.42, 0.11, 0.02, 1)          # D-class orange jumpsuit
+    mx.inputs[7].default_value = (0.2, 0.22, 0.17, 1)           # grey-green dead skin
+    nt.links.new(at.outputs["Fac"], mx.inputs[0])
+    nz = nt.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 9; nz.inputs["Detail"].default_value = 6
+    dirt = nt.nodes.new("ShaderNodeMix"); dirt.data_type = "RGBA"; dirt.blend_type = "MULTIPLY"
+    dirt.inputs[0].default_value = 0.7
+    nt.links.new(mx.outputs[2], dirt.inputs[6]); nt.links.new(nz.outputs["Fac"], dirt.inputs[7])
+    nt.links.new(dirt.outputs[2], b.inputs["Base Color"]); nt.links.new(b.outputs[0], out.inputs["Surface"])
+    return m
+
+
+ZMAT = zombie_mat()
+EYE = V.emit_mat("ZombieEye", (1.0, 0.12, 0.05))[0]; EYE.node_tree.nodes["Emission"].inputs["Strength"].default_value = 25
+SKIN_GROUPS = ("Head", "neck", "hand", "thumb", "index", "middle", "ring", "pinky")
+ZRIGS = []
+for k, (zx, zy, delay) in enumerate(ZOMBIES):
+    z, _ = imp(PACK + "UAL1_unreal_rig_45anims.glb", keep_mesh=True)
+    z.name = f"DClass{k}"
+    for pb in z.pose.bones: pb.rotation_mode = "QUATERNION"
+    for o in z.children:
+        o.data.materials.clear(); o.data.materials.append(ZMAT)
+        gi = {g.index for g in o.vertex_groups if g.name.startswith(SKIN_GROUPS)}
+        att = o.data.attributes.new("skin", "FLOAT", "POINT")
+        for v in o.data.vertices:
+            att.data[v.index].value = min(1, sum(g.weight for g in v.groups if g.group in gi))
+    zh = z.data.bones["Head"]; zc = z.matrix_world @ ((zh.head_local + zh.tail_local) / 2)
+    for sx in (-1, 1):                                                     # glowing red eyes
+        e = V.mesh_obj(f"ZEye{k}{sx}", V.sphere(0.014, 12), EYE)
+        e.location = zc + Vector((sx * 0.035, -0.095, 0.02)); bpy.context.view_layer.update()
+        pb = z.pose.bones["Head"]; e.parent = z; e.parent_type = "BONE"; e.parent_bone = "Head"
+        e.matrix_parent_inverse = (z.matrix_world @ pb.matrix @ Matrix.Translation((0, pb.bone.length, 0))).inverted()
+    r0 = RISE + delay
+    ZL = [(L.clip(ACT2["LayToIdle"], r0, speed=0.75), lambda t: 1),
+          (L.clip(ACT2["Zombie_Scratch"], ROAR + k * 2, speed=1.3), lambda t: env(t, ROAR - 4, ROAR + 2, CHARGE - 3, CHARGE + 1)),
+          (L.clip(ACT["Sprint_Loop"], CHARGE + k * 5, loop=True), lambda t: env(t, CHARGE - 2, CHARGE + 2, LAPSE + 4, LAPSE + 10)),
+          (L.clip(ACT["Jump_Loop"], LAPSE + k * 9, loop=True, speed=2.0), lambda t: env(t, LAPSE + 4, LAPSE + 10))]
+    L.bake(z, ZL, 0, CRUSH + 2)
+    z.rotation_mode = "XYZ"
+    start = Vector((zx, zy, 0)); goal = Vector((zx * 0.3, -1.2, 0)); d = (goal - start).normalized()
+    yaw = math.atan2(d.x, -d.y)
+    run = lambda t, s=start, d=d: s + d * 0.13 * max(0, t - CHARGE - 2)
+    p0 = run(LAPSE + 2)
+    for t in range(0, END + 1):
+        u = sm((t - LAPSE - 2) / (CRUSH - LAPSE - 2)) ** 1.6                          # 0..1 into the blue
+        sc = 1 - sm((t - CRUSH + 12) / 12) if t < CRUSH else 1e-4
+        a = k * 2.1 + 9 * u
+        swirl = Vector((math.cos(a), math.sin(a), 0)) * 0.9 * (1 - u)
+        tgt = B_PT + swirl - Vector((0, 0, 0.95 * sc))                              # body centre into the orb
+        z.location = run(t).lerp(tgt, u) if t > LAPSE + 2 else run(t)
+        z.location.z += 0.4 * math.sin(math.pi * u) * (1 - u)
+        z.rotation_euler = (2.2 * u * math.sin(a), 1.6 * u * math.cos(a * 0.7), math.pi if t < CHARGE else yaw + 6 * u)
+        z.scale = (sc,) * 3
+        z.keyframe_insert("location", frame=t); z.keyframe_insert("rotation_euler", frame=t); z.keyframe_insert("scale", frame=t)
+    ZRIGS.append(z)
 
 
 # ---------------------------------------------------------------- Gojo
@@ -228,6 +313,67 @@ for t in range(0, END + 1):
     rp.energy = (2500 * math.exp(-k / 2.5) if k >= 0 else 0) + 25 * env(t, PUSH, PUSH + 6, REPEL, REPEL + 1)
     rp.keyframe_insert("energy", frame=t)
 
+# ---------------------------------------------------------------- 049 raises the dead: red glow under each body + an alarm
+for k, (zx, zy, delay) in enumerate(ZOMBIES):
+    ld = bpy.data.lights.new(f"Raise{k}", "POINT"); ld.color = (1.0, 0.08, 0.05); ld.shadow_soft_size = 0.4
+    o = bpy.data.objects.new(f"Raise{k}", ld); S.collection.objects.link(o); o.location = (zx, zy - 0.5, 0.15)
+    for t in range(0, END + 1):
+        ld.energy = 140 * env(t, CALL + 4 + delay, RISE + delay, RISE + delay + 30, RISE + delay + 55) * (0.75 + 0.25 * math.sin(t * 0.9 + k))
+        ld.keyframe_insert("energy", frame=t)
+al = bpy.data.lights.new("Alarm", "SPOT"); al.color = (1.0, 0.05, 0.03); al.spot_size = math.radians(70); al.spot_blend = 0.6
+alarm = bpy.data.objects.new("Alarm", al); S.collection.objects.link(alarm); alarm.location = (0, -4.5, 5.5)
+for t in range(0, END + 1):
+    al.energy = 2500 * env(t, CALL, CALL + 6, T_BLUE - 16, T_BLUE - 4) * max(0, math.sin(t * 0.21)) ** 2
+    alarm.rotation_euler = (0.35 * math.sin(t * 0.105), 0.35 * math.cos(t * 0.105), 0)
+    al.keyframe_insert("energy", frame=t); alarm.keyframe_insert("rotation_euler", frame=t)
+
+# ---------------------------------------------------------------- Lapse Blue: a point that drags the bodies in and crushes them
+lapse = V.Orb("Lapse", BLUE, light_w=400, core_strength=9)
+wm, wnt, wout = V.nodes_mat("Warp")                         # a lens of bent space around it
+rf = wnt.nodes.new("ShaderNodeBsdfRefraction"); rf.inputs["IOR"].default_value = 1.12; rf.inputs["Roughness"].default_value = 0.0
+wtr = wnt.nodes.new("ShaderNodeBsdfTransparent"); wlw = wnt.nodes.new("ShaderNodeLayerWeight"); wlw.inputs["Blend"].default_value = 0.5
+wmix = wnt.nodes.new("ShaderNodeMixShader")
+wnt.links.new(wlw.outputs["Facing"], wmix.inputs[0]); wnt.links.new(rf.outputs[0], wmix.inputs[1]); wnt.links.new(wtr.outputs[0], wmix.inputs[2])
+wnt.links.new(wmix.outputs[0], wout.inputs["Surface"])
+warp = V.mesh_obj("Warp", V.sphere(1.0, 48), wm)
+bshm, bshock_s = V.emit_mat("BlueShock", (0.5, 0.75, 1.0), transparent_edges=True)
+bshock = V.mesh_obj("BlueShock", V.sphere(1.0, 48), bshm)
+bfl = bpy.data.lights.new("BlueFlash", "POINT"); bfl.color = (0.5, 0.7, 1.0); bfl.shadow_soft_size = 0.5
+bflash = bpy.data.objects.new("BlueFlash", bfl); S.collection.objects.link(bflash); bflash.location = B_PT
+for t in range(0, END + 1):
+    grow = sm((t - LAPSE) / 6)
+    k = t - CRUSH
+    rad = (0.12 + 0.05 * sm((t - LAPSE) / (CRUSH - LAPSE)) + 0.015 * math.sin(t * 1.7)) * grow
+    if k >= 0: rad = 0.3 * math.exp(-k / 1.2) * (k < 6)
+    lapse.key(t, B_PT, rad, 1.2 + 1.5 * math.exp(-max(0, t - LAPSE) / 3) * (t >= LAPSE) + 3 * (k >= 0))
+    ws = 0.85 * grow * (1 - sm((t - CRUSH + 2) / 4))
+    warp.location = B_PT; warp.scale = (max(ws, 1e-4),) * 3; warp.hide_render = ws < 1e-3
+    bshock.location = B_PT; bshock.scale = ((0.15 + 1.7 * sm(k / 9)) if k >= 0 else 1e-4,) * 3
+    bshock_s.default_value = 2.5 * (1 - sm(k / 9)) if k >= 0 else 0
+    bfl.energy = 7000 * math.exp(-k / 2.5) if k >= 0 else 0
+    for o in (warp, bshock): o.keyframe_insert("scale", frame=t); o.keyframe_insert("location", frame=t)
+    warp.keyframe_insert("hide_render", frame=t); bshock_s.keyframe_insert("default_value", frame=t); bfl.keyframe_insert("energy", frame=t)
+
+# ---------------------------------------------------------------- Reversal Red: a flick that blasts 049 back down the hall
+redshot = V.Orb("RedShot", RED, light_w=250, core_strength=9)
+rshm, rshock_s = V.emit_mat("RedShock", (1.0, 0.35, 0.2), transparent_edges=True)
+rshock = V.mesh_obj("RedShock", V.sphere(1.0, 48), rshm)
+rfl = bpy.data.lights.new("RedFlash", "POINT"); rfl.color = (1.0, 0.3, 0.15); rfl.shadow_soft_size = 0.5
+rflash = bpy.data.objects.new("RedFlash", rfl); S.collection.objects.link(rflash)
+r_hit = CHEST[RED_HIT] + Vector((0, 0.15, 0))
+for t in range(0, END + 1):
+    k = t - RED_HIT
+    if t < RED_CAST - 6: pos, rad = HAND[t], 0.0
+    elif t < RED_CAST: pos, rad = HAND[t], 0.1 * sm((t - RED_CAST + 6) / 4)
+    elif k < 0: pos, rad = HAND[RED_CAST].lerp(r_hit, ((t - RED_CAST) / (RED_HIT - RED_CAST)) ** 1.3), 0.11
+    else: pos, rad = r_hit, 0.45 * sm(k / 2) * (1 - sm((k - 2) / 5))
+    redshot.key(t, pos, rad, 1.3 + 2.5 * (k >= 0))
+    rshock.location = r_hit; rshock.scale = ((0.15 + 1.5 * sm(k / 9)) if k >= 0 else 1e-4,) * 3
+    rshock_s.default_value = 2.5 * (1 - sm(k / 9)) if k >= 0 else 0
+    rflash.location = r_hit + Vector((0, 0.6, 0.2)); rfl.energy = 8000 * math.exp(-k / 2.5) if k >= 0 else 0
+    rshock.keyframe_insert("scale", frame=t); rshock.keyframe_insert("location", frame=t)
+    rshock_s.keyframe_insert("default_value", frame=t); rflash.keyframe_insert("location", frame=t); rfl.keyframe_insert("energy", frame=t)
+
 # ---------------------------------------------------------------- vaporise 049
 VAP = vaporise.Vaporise([o for o in doc_mesh if o.type == "MESH"], CHEST[HIT], start=HIT, burn=26)
 
@@ -248,7 +394,7 @@ burn_light = bpy.data.objects.new("BurnLight", bl); S.collection.objects.link(bu
 
 CAM_D = Vector((1.25, -2.15, 1.55))
 impact = Vector((0, -DIST + 0.2, 1.15))
-_to_cam = (CAM_D - HAND[150]).normalized()
+_to_cam = (CAM_D - HAND[T_BLUE + 30]).normalized()
 UP = Vector((0, 0, 1)); SIDE = _to_cam.cross(UP).normalized(); UP = SIDE.cross(_to_cam).normalized()
 P_launch = None
 for t in range(0, END + 1):
@@ -334,7 +480,14 @@ SHOTS = [  # (first frame, start loc, end loc, look start, look end, lens)
     (44,         (3.1, -0.8, 1.45), (2.8, -0.75, 1.45), (0, -0.78, 1.3), (0, -0.72, 1.35), 16),    # profile: the reach
     (72,         (0.5, 0.45, 1.62), (0.42, 0.38, 1.6), (0, -0.9, 1.42), (0, -0.9, 1.44), 34),     # over Gojo's shoulder: the hand frozen
     (REPEL,      (4.9, -3.4, 1.4), (5.0, -3.9, 1.4), (0, -3.6, 1.0), (0, -4.2, 1.0), 13),       # wide: thrown back
-    (FLY_END + 2, (1.35, -2.3, 1.55), (0.95, -1.8, 1.5), (0.12, -0.55, 1.42), (0.12, -0.55, 1.42), 30),  # Gojo charges
+    (FLY_END + 4, (-2.7, -3.5, 0.4), (-2.5, -3.8, 0.45), (-0.8, -6.6, 0.95), (-0.8, -6.6, 1.0), 17),  # low by a body: 049 calls
+    (RISE + 30,  (-0.95, -2.75, 0.55), (-1.05, -2.95, 0.7), (-1.6, -4.9, 0.75), (-1.6, -4.9, 1.05), 19),  # a body gets up
+    (ROAR - 2,   (0.75, 1.7, 1.7), (0.65, 1.45, 1.65), (0, -5, 1.05), (0, -4, 1.1), 22),         # over Gojo: they roar and charge
+    (LAPSE - 1,  (4.6, -1.5, 1.45), (4.9, -1.9, 1.55), (0, -2.3, 1.1), (0, -2.5, 1.1), 14),       # wide: Lapse Blue drags them in
+    (CRUSH + 14, (0.55, -5.0, 1.45), (0.45, -5.3, 1.45), (0, -7, 1.45), (0, -7, 1.45), 30),       # 049 alone
+    (RUSH + 7,   (4.3, -1.7, 1.3), (4.5, -2.6, 1.3), (0, -2.6, 1.1), (0, -5.3, 0.85), 15),        # side: it charges, Red throws it
+    (LAND - 3,   (1.35, -5.0, 0.4), (1.2, -5.2, 0.5), (0, -7.3, 0.45), (0, -7.1, 0.95), 22),      # low: 049 lands and gets up
+    (T_BLUE - 2, (1.35, -2.3, 1.55), (0.95, -1.8, 1.5), (0.12, -0.55, 1.42), (0.12, -0.55, 1.42), 30),  # Gojo charges
     (SHOOT - 3,  (5.0, -3.4, 1.45), (5.1, -4.6, 1.6), (0, -3.6, 1.1), (0, -5.6, 0.9), 12.5),       # wide: the shot
     (HIT + 3,    (2.3, -4.6, 1.4), (1.8, -5.3, 1.3), (0, -7.5, 1.05), (0, -7.5, 1.05), 28),     # 049 burns away
     (EXIT + 26,  (1.3, 2.6, 1.75), (1.1, 2.1, 1.65), (-0.2, -6.0, 0.7), (-0.2, -6.0, 0.7), 24),  # behind Gojo: nothing left
@@ -348,7 +501,7 @@ for t in range(0, END + 1):
     loc = Vector(l0).lerp(Vector(l1), u); look = Vector(k0).lerp(Vector(k1), u)
     if i == 2:                                     # aim at the frozen hand, the mask behind it
         look = DOC_HAND[min(t, REPEL)] + Vector((0, -0.25, 0.08)); loc = look + Vector((0.6 - 0.08 * u, 1.55 - 0.2 * u, 0.16))
-    for t_hit, amp, tau in ((REPEL, 0.08, 5), (HIT, 0.12, 6)):
+    for t_hit, amp, tau in ((REPEL, 0.08, 5), (CRUSH, 0.1, 5), (RED_HIT, 0.1, 5), (LAND, 0.05, 4), (HIT, 0.12, 6)):
         k = t - t_hit
         if 0 <= k < 40: sh = amp * math.exp(-k / tau); loc = loc + Vector((0, sh * math.sin(k * 2.1), sh * math.sin(k * 3.3)))
     cam.location = loc; cam.rotation_euler = (look - loc).to_track_quat("-Z", "Y").to_euler(); cam.data.lens = lens
