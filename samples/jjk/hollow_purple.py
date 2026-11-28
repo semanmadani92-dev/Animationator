@@ -1,5 +1,6 @@
 """Gojo's Hollow Purple: a blue orb and a red orb charge, spiral together and merge into a
-purple sphere that Gojo fires at Sukuna, scorching the floor and blasting him away.
+purple sphere that Gojo fires at Sukuna, scorching the floor and vaporising him (vaporise.py).
+Sound: hollow_purple_sfx.py builds the matching soundtrack.
 
   ~/blendervenv/bin/python hollow_purple.py -- preview|final OUT_DIR MODELS_DIR [frames | a-b]
   MODELS_DIR holds gojo/gojo.fbx and yuji/yuji.fbx (+ textures).
@@ -8,7 +9,7 @@ import bpy, bmesh, sys, os, math, random
 from mathutils import Vector, Matrix
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, "..", "characters"))
-import layers as L, mbchar, sukuna
+import layers as L, mbchar, sukuna, vaporise
 
 args = sys.argv[sys.argv.index("--") + 1:]
 MODE, OUT, MODELS = args[0], args[1], args[2]
@@ -50,7 +51,7 @@ A = [(L.clip(ACT["Idle_Loop"], 0, loop=True), lambda t: 1),
      (L.clip(ACT["Spell_Simple_Exit"], EXIT, speed=0.8), lambda t: env(t, EXIT, EXIT + 2, EXIT + 15, EXIT + 22))]
 B = [(L.clip(ACT["Idle_Loop"], -17, loop=True), lambda t: 1),
      (L.hold(ACT["Punch_Jab"], 1), lambda t: env(t, 40, 56)),
-     (L.clip(ACT["Hit_Knockback_RM"], HIT - 1, speed=0.75, root_scale=1.5), lambda t: env(t, HIT - 2, HIT))]
+     (L.clip(ACT["Hit_Knockback_RM"], HIT - 1, speed=0.6, root_scale=0.5), lambda t: env(t, HIT - 2, HIT))]
 L.bake(srcA, A, 0, END)
 L.bake(srcB, B, 0, END)
 for o in (srcA, srcB): o.hide_render = True
@@ -94,6 +95,14 @@ for t in range(0, END + 1):
     bpy.context.view_layer.update()
     h = gojo.matrix_world @ gojo.pose.bones["mixamorig:LeftHandMiddle2"].head
     HAND[t] = h + Vector((0, -0.14, 0.02))
+
+# Sukuna burns away from the chest outwards once the sphere hits
+S.frame_set(0); bpy.context.view_layer.update()
+chest0 = suk.matrix_world @ suk.pose.bones["mixamorig:Spine2"].head
+VAP = vaporise.Vaporise([o for o in suk_objs if o.type == "MESH"], chest0, start=HIT, burn=26)
+CHEST = {}
+for t in range(0, END + 1):
+    S.frame_set(t); CHEST[t] = suk.matrix_world @ suk.pose.bones["mixamorig:Spine2"].head
 
 
 # ---------------------------------------------------------------- VFX building blocks
@@ -247,6 +256,8 @@ shock = mesh_obj("Shock", lambda bm: bmesh.ops.create_cone(bm, cap_ends=False, s
 shock.rotation_euler.x = math.pi / 2
 fl = bpy.data.lights.new("Flash", "POINT"); fl.color = (0.85, 0.6, 1.0); fl.shadow_soft_size = 1.0
 flash = bpy.data.objects.new("Flash", fl); S.collection.objects.link(flash)
+bl = bpy.data.lights.new("BurnLight", "POINT"); bl.color = PURPLE; bl.shadow_soft_size = 0.3
+burn_light = bpy.data.objects.new("BurnLight", bl); S.collection.objects.link(burn_light)
 
 impact = Vector((0, -DIST + 0.2, 1.15))
 # orbit plane faces the close-up camera, so blue and red flank the hand on screen
@@ -285,7 +296,7 @@ for t in range(0, END + 1):
         trail_s.default_value = 3.5 * (1 - sm((t - HIT) / 14))
         scorch.location = Vector((P_launch.x, (P_launch.y - 0.3 + pos.y) / 2, 0.004))
         scorch.scale = (1.5, max(0.01, abs(pos.y - P_launch.y + 0.3)), 1)
-        scorch_glow.default_value = 14 * (1 - sm((t - HIT) / 60)) + 0.3
+        scorch_glow.default_value = (4 + 10 * math.exp(-max(0, t - HIT) / 5)) * (1 - sm((t - HIT) / 60)) + 0.3
     else:
         trail.scale = (1e-4,) * 3; trail_s.default_value = 0
         scorch.scale = (1e-4,) * 3; scorch_glow.default_value = 0
@@ -300,9 +311,15 @@ for t in range(0, END + 1):
     shock.scale = ((0.2 + 4 * sm(k / 14)),) * 2 + (1,) if k >= 0 else (1e-4,) * 3
     shock_s.default_value = 9 * (1 - sm(k / 14)) if k >= 0 else 0
     flash.location = impact + Vector((0, 0.5, 0.3))
-    fl.energy = 60000 * math.exp(-k / 3.5) if k >= 0 else 0
+    fl.energy = 60000 * math.exp(-k / 2.5) if k >= 0 else 0
     shock.keyframe_insert("location", frame=t); shock.keyframe_insert("scale", frame=t)
     shock_s.keyframe_insert("default_value", frame=t); fl.keyframe_insert("energy", frame=t)
+    # vaporise
+    VAP.key(t)
+    burn_light.location = CHEST[t] + Vector((0, 0.3, 0))
+    bl.energy = 700 * sm(k / 2) * (1 - sm((k - 18) / 16)) if k >= 0 else 0
+    burn_light.keyframe_insert("location", frame=t); bl.keyframe_insert("energy", frame=t)
+VAP.embers()
 
 
 # ---------------------------------------------------------------- set, lights, camera
@@ -327,6 +344,15 @@ for t in range(0, END + 1):
     if t < SHOOT - 3:                                   # close on Gojo charging
         u = t / (SHOOT - 3)
         loc = Vector((1.35, -2.3, 1.55)).lerp(Vector((0.95, -1.75, 1.5)), sm(u)); look = Vector((0.12, -0.55, 1.42)); lens = 32
+    elif HIT + 3 <= t < 166:                            # on Sukuna as he burns away
+        u = sm((t - HIT - 3) / 45)
+        loc = Vector((2.3, -4.5, 1.4)).lerp(Vector((1.7, -5.3, 1.3)), u); look = Vector((0, -7.5, 1.05)); lens = 30
+        k = t - HIT
+        sh = 0.05 * math.exp(-k / 8)
+        loc = loc + Vector((0, sh * math.sin(k * 2.7), sh * math.sin(k * 3.9)))
+    elif t >= 166:                                      # behind Gojo: the empty, scorched arena
+        u = sm((t - 166) / 34)
+        loc = Vector((1.3, 2.6, 1.75)).lerp(Vector((1.1, 2.1, 1.65)), u); look = Vector((-0.2, -6.0, 0.7)); lens = 28
     else:                                               # wide side shot of the blast
         u = sm((t - HIT) / 50)
         loc = Vector((8.2, -4.2, 1.55)).lerp(Vector((8.6, -6.0, 1.7)), u); look = Vector((0, -4.0, 1.1)).lerp(Vector((0, -6.5, 0.9)), u); lens = 22
