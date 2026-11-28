@@ -98,3 +98,18 @@ ffmpeg -framerate 30 -i OUT/hpf_%04d.png -i OUT/sfx.wav -c:v libx264 -pix_fmt yu
   - slow motion at the impact
   - joining the fight and Hollow Purple into one video
   - using Megumi or Nobara
+
+## Gojo vs SCP-049 (vertical Short)
+SCP-049 walks up and reaches for Gojo. Infinity stops its hand an inch away. Gojo repels it, charges Hollow Purple and vaporises it.
+- `gojo_vs_049.py`: the scene, 720x1280, 293 frames. SCP-049 is the CC0 mannequin dressed in code (hood, ceramic beak mask, robe, bag), so no extra model is needed.
+- `hpvfx.py`: the orb, glow-material and mesh helpers, shared with `hollow_purple.py`.
+- `gojo_vs_049_sfx.py`: the soundtrack (footsteps, Infinity hum, repel boom, then the Hollow Purple sounds).
+- `edit_049.sh`: the cold open (frames 78-98, the frozen hand), the hook text, the SCP-049 credit, and a 1080x1920 upscale.
+```
+~/blendervenv/bin/python gojo_vs_049.py -- preview OUT ~/jjk_models 58,80,98      # 360x640 stills, ~5 s each
+~/blendervenv/bin/python gojo_vs_049.py -- final OUT ~/jjk_models                 # ~1 h on 4 CPUs
+python3 gojo_vs_049_sfx.py OUT/sfx.wav
+bash edit_049.sh OUT OUT/sfx.wav gojo_vs_049.mp4
+```
+- **Timing (frames):** the reach at 50, the hand frozen at 66, the repel at 100, the landing at 116, blue at 120, red at 134, the merge at 178, the shot at 194, the hit at 207. If you change one, change the SFX script too.
+- **Credit:** SCP-049 by Gabriel Jade (CC BY-SA 3.0). It's in the video and must go in the description.
