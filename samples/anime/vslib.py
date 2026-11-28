@@ -265,3 +265,38 @@ def render(mode, out, prefix, end, args, bloom=0.9):
             a, b = args[0].split("-"); S.frame_start, S.frame_end = int(a), int(b)
         S.render.use_overwrite = False                 # resume: skip frames already on disk
         bpy.ops.render.render(animation=True)
+
+
+# ---------------------------------------------------------------- smoke / dust puffs and clones
+def puff(name, loc, t0, end, size=1.4, dens=2.0, rgb=(0.45, 0.43, 0.4), grow=25, fade=55, height=0.35):
+    """A volume cloud that swells from frame t0 and thins out (dust, smoke, a clone's 'poof')."""
+    m, nt, out = V.nodes_mat(name)
+    tc = nt.nodes.new("ShaderNodeTexCoord"); gr = nt.nodes.new("ShaderNodeTexGradient"); gr.gradient_type = "SPHERICAL"
+    nt.links.new(tc.outputs["Object"], gr.inputs["Vector"])
+    dn = nt.nodes.new("ShaderNodeTexNoise"); dn.inputs["Scale"].default_value = 4
+    a = nt.nodes.new("ShaderNodeMath"); a.operation = "MULTIPLY"; nt.links.new(gr.outputs["Fac"], a.inputs[0]); nt.links.new(dn.outputs["Fac"], a.inputs[1])
+    b = nt.nodes.new("ShaderNodeMath"); b.operation = "MULTIPLY"; nt.links.new(a.outputs[0], b.inputs[0])
+    pv = nt.nodes.new("ShaderNodeVolumePrincipled"); pv.inputs["Color"].default_value = (*rgb, 1)
+    nt.links.new(b.outputs[0], pv.inputs["Density"]); nt.links.new(pv.outputs[0], out.inputs["Volume"])
+    o = V.mesh_obj(name, V.sphere(1.0, 24), m); o.location = loc
+    for t in range(end + 1):
+        k = t - t0
+        o.scale = (0.3 + size * sm(k / grow), 0.3 + size * sm(k / grow), 0.2 + height * size * sm(k / grow)) if k > 0 else (1e-3,) * 3
+        b.inputs[1].default_value = dens * (1 - sm(k / fade)) * (k > 0)
+        o.hide_render = not (0 < k < fade + 2)
+        o.keyframe_insert("scale", frame=t); b.inputs[1].keyframe_insert("default_value", frame=t); o.keyframe_insert("hide_render", frame=t)
+    return o
+
+
+def clone_objects(objs, offset, tag):
+    """Copy an imported hierarchy (shared bone animation), moved by offset. Returns the copies."""
+    mp = {o: o.copy() for o in objs}
+    for o, c in mp.items():
+        S.collection.objects.link(c); c.name = f"{o.name}_{tag}"
+        if o.parent in mp: c.parent = mp[o.parent]
+        for md in c.modifiers:
+            if md.type == "ARMATURE" and md.object in mp: md.object = mp[md.object]
+        if c.type == "MESH" and c.animation_data: c.animation_data_clear()
+    for o, c in mp.items():
+        if o.parent not in mp: c.location = o.location + Vector(offset)
+    return list(mp.values())
